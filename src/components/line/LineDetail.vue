@@ -21,34 +21,49 @@
               @blur="refreshTarget"
             />
           </el-form-item>
-          <el-form-item label="虚线" class="fr" style="gap: 10px;">
-            <div
-              class="icon-select" :class="{ 'active': props.line.style.isDashed }" 
-              @click="props.line.style.isDashed = !props.line.style.isDashed"
-            >
-              <svg viewBox="0 0 24 24" :width="24" :height="24">
-                <path id="dash-btn-icon" d="M2,2 L22,22" stroke="#8de0ff" stroke-width="2" fill="none" stroke-dasharray="4,3" />
-              </svg>
-            </div>
-            <el-input
-              v-if="props.line.style.isDashed"
-              v-model="props.line.style.dashArray"
+
+          <el-form-item label="路线样式">
+            <el-select
+              v-model="props.line.style.pattern"
+              placeholder="请选择路线样式"
               style="width: 150px;"
-              placeholder="例: 10 20"
+              @change="refreshTarget"
+            >
+              <el-option label="默认" value="default" />
+              <el-option label="虚线" value="dashed" />
+              <el-option label="快线" value="fastline" />
+              <el-option label="铁路" value="railway" />
+            </el-select>
+            <el-input
+              v-if="['dashed', 'railway'].includes(props.line.style.pattern)"
+              v-model="props.line.style.dashArray"
+              style="width: 200px;"
               @blur="refreshTarget"
             >
               <template #prepend>虚线间隔</template>
             </el-input>
-          </el-form-item>
-          <el-form-item label="圆角">
-            <div
-              class="icon-select" :class="{ 'active': props.line.style.isRoundCorner }" 
-              @click="props.line.style.isRoundCorner = !props.line.style.isRoundCorner"
+            <el-input
+              v-if="['fastline', 'railway'].includes(props.line.style.pattern)"
+              v-model="props.line.style.innerStrokePercent"
+              type="number"
+              min="0"
+              max="1"
+              step="0.1"
+              style="width: 200px;"
+              @blur="refreshTarget"
             >
-              <svg viewBox="0 0 24 24" :width="24" :height="24">
-                <path :d="`M4,4 ${getRoundCornerD({x: 4, y: 4}, {x: 4, y: 20}, {x: 20, y: 20}, props.line.style.roundCornerRadius || 10)} L20,20`" stroke="#8de0ff" stroke-width="2" fill="none" />
-              </svg>
-            </div>
+              <template #prepend>内线占比</template>
+            </el-input>
+          </el-form-item>
+
+          <el-form-item>
+            <el-checkbox
+              v-model="props.line.style.isRoundCorner"
+              @change="refreshTarget"
+              style="margin-right: 10px;"
+            >
+              设置圆角
+            </el-checkbox>
             <el-input
               v-if="props.line.style.isRoundCorner"
               type="number"

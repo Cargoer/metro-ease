@@ -2,6 +2,7 @@
   <div class="draw-tool-container">
     <div class="group">
       <el-button type="primary" @click="importBgDialogVisible = true">导入底图</el-button>
+      <el-button type="primary" @click="emits('clearCanvas')">清除画布</el-button>
 
       <el-button type="primary" class="icon-select" @click="emits('saveSvg')" title="保存为图片">
         <svg viewBox="0 0 24 24" :width="24" :height="24">
@@ -59,9 +60,9 @@
       <StationSetting />
     </div>
 
-    <div class="group" v-else-if="tool === 'text'">
+    <!-- <div class="group" v-else-if="tool === 'text'">
       <TextSetting />
-    </div>
+    </div> -->
 
     <Dialog
       v-model:visible="importBgDialogVisible"
@@ -142,6 +143,7 @@ const emits = defineEmits([
   'saveSvg', 
   'exportSvg',
   'importJson',
+  'clearCanvas',
 ])
 
 function updateTool (toolValue) {

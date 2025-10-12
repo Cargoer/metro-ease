@@ -312,7 +312,7 @@ export async function saveSvgWithBg(drawPartG, href, watermarkText = '', format 
     watermark.setAttribute('x', watermarkX);
     watermark.setAttribute('y', watermarkY);
     watermark.setAttribute('fill', 'rgba(0, 0, 0, 0.1)'); // 半透明灰色
-    watermark.setAttribute('font-size', '24');
+    watermark.setAttribute('font-size', `${Math.min(Math.max(Math.floor(height / 20))), Math.floor(width / watermarkText.length)}`);
     watermark.setAttribute('text-anchor', 'end'); // 右对齐
     watermark.setAttribute('dominant-baseline', 'bottom'); // 底部对齐
     watermark.textContent = watermarkText;

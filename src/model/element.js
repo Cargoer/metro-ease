@@ -64,6 +64,7 @@ export class Svg {
     const drawPartG = new Group(globalG, { id: 'draw_part' }) // 绘制图层
     new Group(drawPartG, { id: 'global_line_g' }) // 绘制线路图层
     new Group(drawPartG, { id: 'global_station_g' }) // 绘制站点图层
+    new Group(drawPartG, { id: 'global_text_g' }) // 绘制文本图层
   }
 
   // 刷新画布（一般是由于长宽发生变化才刷新）
@@ -284,7 +285,7 @@ export class Text {
     this.id = settings.id || generateUniqueId('text')
     this.parent = parent
     parent.children[this.id] = this
-    this.content = settings.content || '双击编辑文本'
+    this.content = settings.content || '点击编辑文本'
     this.pos = settings.pos || { x: 0, y: 0 }
 
     // this.settings = {
@@ -301,7 +302,7 @@ export class Text {
     // }
 
     this.style = {
-      textColor: settings.style.textColor,
+      textColor: settings.style.textColor, 
       fontSize: settings.style.fontSize,
       withBg: settings.style.withBg,
       withBorder: settings.style.withBorder,
@@ -319,11 +320,11 @@ export class Text {
     this.bgNode = this.g.append("rect").attr("id", `${this.id}_bg`)
     this.node = this.g.append("text").attr("id", this.id)
     this.node
-      .on('dblclick', async (e) => {
-        e.stopPropagation()
-        const content = await messageBoxInput('输入文本', '', this.content)
-        this.modifyContent(content)
-      })
+      // .on('dblclick', async (e) => {
+      //   e.stopPropagation()
+      //   const content = await messageBoxInput('输入文本', '', this.content)
+      //   this.modifyContent(content)
+      // })
       .on('click', (e) => {
         e.stopPropagation()
         this.setSelect(true)
@@ -366,6 +367,7 @@ export class Text {
       this.refreshSelect()
     } else {
       this.g.select(`#${this.id}_select`).remove()
+      selectedElement.value = null
     }
   }
 

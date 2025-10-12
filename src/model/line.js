@@ -1,18 +1,12 @@
-import moment from "moment"
 import * as d3 from "d3"
 import { addContextMenu } from '@/tools/utils'
 
-// createBorderFilter
-import { 
-  createBorderFilter, 
-  getRectByPoints, 
+import {  
   getRoundCornerD,
   get135ConnectionD,
   get90ConnectionD,
   getDistance,
 } from '@/tools/svgRelated'
-import { messageBoxInput } from '@/tools/interact'
-import { reactive, ref } from "vue"
 import { draggable } from '@/tools/svgMover'
 import { generateUniqueId } from '@/tools/utils'
 // drawStore
@@ -47,8 +41,10 @@ export default class Line {
       stroke: settings.style.stroke || '#000',
       strokeWidth: settings.style.strokeWidth || 10,
       fill: settings.style.fill || 'none',
-      isDashed: settings.style.isDashed || false,
+      // isDashed: settings.style.isDashed || false,
+      pattern: settings.style.pattern || 'default',
       dashArray: settings.style.dashArray || '20 20',
+      innerStrokePercent: settings.style.pattern === 'railway' ? 0.8 : 0.3,
       isRoundCorner: settings.style.isRoundCorner || false,
       roundCornerRadius: settings.style.roundCornerRadius || 10,
       isClosed: settings.style.isClosed || false,
@@ -58,7 +54,9 @@ export default class Line {
     this.joints = settings.joints || []
     this.addJointMode = 'push'
     this.g = this.parent.node.append("g").attr('id', `${this.id}_g`)
-    this.node = null
+    this.basicePath = null
+    this.additionalPath = null // 用于城际铁路展示
+    this.selectG = this.g.append('g').attr('id', `${this.id}_select_g`)
     this.previewNode = null
     setTimeout(() => {
       this.joints.forEach(joint => {
@@ -91,15 +89,17 @@ export default class Line {
   }
 
   generateNode () {
-    this.node = this.g.append("path").attr('id', this.id)
+    this.basicePath = this.g.append("path").attr('id', this.id)
       .attr('stroke', this.style.stroke).attr('stroke-width', this.style.strokeWidth).attr('fill', this.style.fill)
       .attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
       .attr('d', this.d).attr('pointer-events', 'stroke')
     
-    if (this.style.isDashed) {
-      this.node.attr('stroke-dasharray', this.style.dashArray)
-      this.node.attr('stroke-dashoffset', '0')
-    }
+    this.additionalPath = this.g.append("path").attr('id', `${this.id}_additional`)
+      .attr('stroke', 'none').attr('stroke-width', Math.round(this.style.strokeWidth * this.style.innerStrokePercent)).attr('fill', 'none')
+      .attr('stroke-linejoin', 'round')
+      .attr('d', this.d).attr('pointer-events', 'stroke')
+
+    this.refreshStyle()
 
     this.addEventListeners()
 
@@ -111,19 +111,38 @@ export default class Line {
   refreshStyle (styleObj) {
     if (styleObj) {
       for (let [key, value] of Object.entries(styleObj)) {
-        this.node.attr(key, value)
+        this.basicePath.attr(key, value)
       }
     } else {
-      this.node
-      .attr('stroke', this.style.stroke)
-      .attr('stroke-width', this.style.strokeWidth)
-      .attr('fill', this.style.fill)
-      
-      if (this.style.isDashed) {
-        this.node.attr('stroke-dasharray', this.style.dashArray)
-        this.node.attr('stroke-dashoffset', '0')
-      } else {
-        this.node.attr('stroke-dasharray', '')
+      this.basicePath
+        .attr('stroke', this.style.stroke)
+        .attr('stroke-width', this.style.strokeWidth)
+        .attr('fill', this.style.fill)
+
+      switch (this.style.pattern) {
+        case 'dashed':
+          this.basicePath.attr('stroke-dasharray', this.style.dashArray)
+          this.basicePath.attr('stroke-dashoffset', '0')
+          break
+        case 'railway':
+          this.additionalPath
+            .attr('stroke', '#fff')
+            .attr('stroke-width', Math.round(this.style.strokeWidth * this.style.innerStrokePercent))
+            .attr('stroke-dasharray', this.style.dashArray)
+            .attr('stroke-dashoffset', '0')
+          break
+        case 'fastline':
+          this.additionalPath
+            .attr('stroke', '#fff')
+            .attr('stroke-width', Math.round(this.style.strokeWidth * this.style.innerStrokePercent))
+            .attr('stroke-dasharray', '')
+          break
+        default:
+          this.basicePath.attr('stroke-dasharray', '')
+          this.additionalPath
+            .attr('stroke-dasharray', '')
+            .attr('stroke', 'none')
+          break
       }
     }
     
@@ -239,7 +258,9 @@ export default class Line {
     if (this.style.isClosed) d += 'Z'
     if (!readOnly) {
       this.d = d
-      this.node.attr('d', d)
+      this.basicePath.attr('d', d)
+      this.additionalPath.attr('d', d)
+
       if (this.previewNode) { // 已绘制，清除预览
         this.previewNode.remove()
         this.previewNode = null
@@ -450,16 +471,27 @@ export default class Line {
   }
 
   addEventListeners () {
-    this.node
-    .on('click', (e) => {
-      if (tool.value === 'select') { // 选中该路径
-        e.stopPropagation()
-        if (selectedElement.value) {
-          selectedElement.value.setSelect(false)
+    this.basicePath
+      .on('click', (e) => {
+        if (tool.value === 'select') { // 选中该路径
+          e.stopPropagation()
+          if (selectedElement.value) {
+            selectedElement.value.setSelect(false)
+          }
+          this.setSelect(true)
         }
-        this.setSelect(true)
-      }
-    })
+      })
+
+    this.additionalPath
+      .on('click', (e) => {
+        if (tool.value === 'select') { // 选中该路径
+          e.stopPropagation()
+          if (selectedElement.value) {
+            selectedElement.value.setSelect(false)
+          }
+          this.setSelect(true)
+        }
+      })
   }
 
   addJoint (joint, index = null) {
@@ -504,7 +536,7 @@ export default class Line {
     if (selectedElement.value === this) {
       this.setSelect(false)
     }
-    this.node.remove()
+    this.basicePath.remove()
     this.joints.forEach(joint => {
       if (joint.relatedStation) {
         joint.relatedStation.removePoints({
@@ -518,5 +550,18 @@ export default class Line {
 
   get stations () {
     return this.joints.filter(joint => joint.relatedStation).map(joint => joint.relatedStation)
+  }
+
+  toStandard () {
+    const newJoints = this.joints.filter(joint => !!joint.relatedStation).map(joint => ({
+      ...joint,
+      type: 'from135'
+    }))
+    this.joints = newJoints
+    this.generateD(this.joints)
+  }
+
+  modifyName (name) {
+    this.name = name
   }
 }

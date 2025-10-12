@@ -7,6 +7,7 @@
       @saveSvg="saveDialogVisible = true"
       @exportSvg="handleExportSvg"
       @importJson="handleImportJson($event)"
+      @clearCanvas="clearCanvas"
     />
     <!-- 画布逻辑 -->
     <div id="draw-container">
@@ -146,7 +147,7 @@ function handleSvgClick (event, pos) {
   }
 
   if (tool.value === 'text') {
-    const textG = svg.children['global_g'].children['draw_part']
+    const textG = svg.children['global_g'].children['draw_part'].children['global_text_g']
     new Text(textG, {
       pos,
       style: textSetting.value
@@ -254,12 +255,12 @@ const handleBeforeUnload = (e) => {
 };
 
 function clearCanvas () {
-  svg.children['global_g'].children['draw_part'].children['global_line_g'].node.remove()
+  svg.children['global_g'].children['draw_part'].children['global_line_g'].node.selectAll('*').remove()
   svg.children['global_g'].children['draw_part'].children['global_line_g'].children = {}
-  svg.children['global_g'].children['draw_part'].children['global_station_g'].node.remove()
+  svg.children['global_g'].children['draw_part'].children['global_station_g'].node.selectAll('*').remove()
   svg.children['global_g'].children['draw_part'].children['global_station_g'].children = {}
   // 清除文本
-  svg.children['global_g'].children['draw_part'].children['global_text_g'].node.remove()
+  svg.children['global_g'].children['draw_part'].children['global_text_g'].node.selectAll('*').remove()
   svg.children['global_g'].children['draw_part'].children['global_text_g'].children = {}
   // 清除选中元素
   selectedElement.value = null
@@ -335,6 +336,9 @@ onMounted(async () => {
       }
     } else if (presetToolKeys[e.key]) {
       tool.value = presetToolKeys[e.key]
+    } else if (e.key === 'q') {
+      // 所有线转换为标准线
+      Object.values(svg.children['global_g'].children['draw_part'].children['global_line_g'].children).forEach(line => line.toStandard())
     }
   })
   window.addEventListener('keyup', (e) => {
@@ -345,9 +349,6 @@ onMounted(async () => {
     svg.refreshCanvas()
   })
   window.addEventListener('beforeunload', handleBeforeUnload);
-})
-onUpdated(() => {
-  console.log('onUpdated')
 })
 </script>
 

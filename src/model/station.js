@@ -128,13 +128,6 @@ export default class Station {
   }
 
   generateNode () {
-    // let sharedGenerateId = generateUniqueId()
-    // if (!this.id) {
-    //   this.id = `station_${sharedGenerateId}`
-    //   this.parent.children[this.id] = this
-    // } else {
-    //   sharedGenerateId = this.id.split('_').slice(-1)[0]
-    // }
     this.g = this.parent.node.append("g")
     this.shapeG = this.g.append("g")
     this.shape = this.shapeG.append("rect")
@@ -178,12 +171,9 @@ export default class Station {
           ele: 'station',
           eleObj: this,
         }
-      // })
-      // .on('mousedown', (e) => { // 鼠标按下事件
         if (tool.value === 'select') {
           this.setSelect(true)
         }
-        // e.stopPropagation()
       })
 
     this.mover = draggable(this.shape, (pos) => {

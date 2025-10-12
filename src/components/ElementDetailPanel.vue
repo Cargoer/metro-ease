@@ -1,7 +1,9 @@
 <template>
   <div class="element-detail-panel" v-if="visible">
     <div class="dialog-header">
+      <span v-if="selectedElement.id.includes('text')">文本</span>
       <el-input
+        v-else
         v-model="nameToShow"
         style="width: 250px;"
       >
@@ -18,7 +20,7 @@
         <StationDetail :station="selectedElement" />
       </template>
       <template v-else-if="selectedElement.id.includes('text')">
-        <TextSetting :targetSetting="selectedElement.settings" />
+        <TextDetail :text="selectedElement" />
       </template>
     </div>
     <div class="close-btn" @click="closeDialog">×</div>
@@ -33,6 +35,7 @@ import StationSetting from '@/components/StationSetting.vue'
 import TextSetting from '@/components/TextSetting.vue'
 import LineDetail from '@/components/line/LineDetail.vue'
 import StationDetail from '@/components/station/StationDetail.vue'
+import TextDetail from '@/components/text/TextDetail.vue'
 
 // drawStore
 import { useDrawStore } from '@/store/drawStore'
@@ -45,7 +48,7 @@ const nameToShow = computed({
     return selectedElement.value.name || '未命名'
   },
   set(val) {
-    selectedElement.value.name = val
+    selectedElement.value.modifyName(val) 
   }
 })
 

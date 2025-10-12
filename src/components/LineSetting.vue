@@ -22,22 +22,17 @@
       <template #prepend>线宽</template>
     </el-input>
 
-    <div
-      class="icon-select" :class="{ 'active': props.setting.isDashed }" 
-      @click="toggleDashed"
-    >
-      <svg viewBox="0 0 24 24" :width="24" :height="24">
-        <path id="dash-btn-icon" d="M2,2 L22,22" stroke="#fff" stroke-width="2" fill="none" stroke-dasharray="4,3" />
-      </svg>
-    </div>
-    <el-input
-      v-if="props.setting.isDashed"
-      v-model="props.setting.dashArray"
+    <el-select
+      v-model="props.setting.pattern"
+      placeholder="请选择路线样式"
       style="width: 150px;"
-      placeholder="例: 10 20"
     >
-      <template #prepend>虚线间隔</template>
-    </el-input>
+      <el-option label="默认" value="default" />
+      <el-option label="虚线" value="dashed" />
+      <el-option label="快线" value="fastline" />
+      <el-option label="铁路" value="railway" />
+      <template #prefix>样式</template>
+    </el-select>
 
     <div
       class="icon-select" :class="{ 'active': props.setting.isRoundCorner }" 
