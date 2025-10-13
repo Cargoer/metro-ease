@@ -238,7 +238,7 @@ export function saveSvg(drawPartG, format = 'image/png', quality = 0.92) {
   img.src = url;
 }
 
-export async function saveSvgWithBg(drawPartG, href, watermarkText = '', imageName = '我的地铁图', format = 'image/png', quality = 0.95) {
+export async function saveSvgWithBg(drawPartG, { bgUrl = '', watermarkText = '', imageName = '我的地铁图', format = 'image/png', quality = 0.95, watermarkPosition = 'bottom-left' }) {
   // 获取元素的边界框，确定需要保存的区域
   const { x, y, width, height } = drawPartG.node().getBBox();
   const padding = 100;
@@ -250,13 +250,13 @@ export async function saveSvgWithBg(drawPartG, href, watermarkText = '', imageNa
   svgToSave.setAttribute('viewBox', `${x - padding} ${y - padding} ${width + padding * 2} ${height + padding * 2}`);
   
   // 添加底图相应的部分
-  const background = document.createElementNS('http://www.w3.org/2000/svg', href ? 'image' : 'rect');
+  const background = document.createElementNS('http://www.w3.org/2000/svg', bgUrl ? 'image' : 'rect');
   background.setAttribute('x', x - padding);
   background.setAttribute('y', y - padding);
   background.setAttribute('width', width + padding * 2);
   background.setAttribute('height', height + padding * 2);
   background.setAttribute('fill', 'white'); // 设置背景色
-  if (href) {
+  if (bgUrl) {
     await new Promise((resolve, reject) => {
       // 创建新图片对象加载图片
       const image = new Image();
@@ -282,7 +282,7 @@ export async function saveSvgWithBg(drawPartG, href, watermarkText = '', imageNa
         reject()
       };
 
-      image.src = href
+      image.src = bgUrl
     })
 
   }
@@ -298,15 +298,28 @@ export async function saveSvgWithBg(drawPartG, href, watermarkText = '', imageNa
     const watermark = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     
     // 计算水印位置（右下角）
-    const watermarkX = x + width - padding / 2;
-    const watermarkY = y + height - padding / 2;
+    let watermarkX = x + width - padding / 2;
+    let watermarkY = y + height - padding / 2;
+    if (watermarkPosition === 'top-left') {
+      watermarkX = x + padding / 2;
+      watermarkY = y + padding / 2;
+    } else if (watermarkPosition === 'top-right') {
+      watermarkX = x + width - padding / 2;
+      watermarkY = y + padding / 2;
+    } else if (watermarkPosition === 'bottom-right') {
+      watermarkX = x + width - padding / 2;
+      watermarkY = y + height - padding / 2;
+    } else if (watermarkPosition === 'bottom-left') {
+      watermarkX = x + padding / 2;
+      watermarkY = y + height - padding / 2;
+    }
     
     // 设置水印属性
     watermark.setAttribute('x', watermarkX);
     watermark.setAttribute('y', watermarkY);
     watermark.setAttribute('fill', 'rgba(0, 0, 0, 0.1)'); // 半透明灰色
-    watermark.setAttribute('font-size', `${Math.min(Math.max(Math.floor(height / 20))), Math.floor(width / watermarkText.length)}`);
-    watermark.setAttribute('text-anchor', 'end'); // 右对齐
+    watermark.setAttribute('font-size', `${Math.min(Math.floor(height / 20), Math.floor(width * 0.8 / watermarkText.length))}`);
+    watermark.setAttribute('text-anchor', watermarkPosition.includes('right') ? 'end' : 'start'); // 右对齐
     watermark.setAttribute('dominant-baseline', 'bottom'); // 底部对齐
     watermark.textContent = watermarkText;
     

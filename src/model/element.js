@@ -150,7 +150,7 @@ export class Svg {
         //   img.attr("data-resolution", "low");
         // }
 
-        this.drawCanvasBg()
+        if (this.bgUrl) this.drawCanvasBg()
       })
       .filter((e) => {
         // 如果是双击事件，不应用zoom行为

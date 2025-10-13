@@ -34,6 +34,10 @@ const galleries = [
   {
     name: 'guangzhou',
     title: '广州地铁'
+  },
+  {
+    name: 'hongkong',
+    title: '香港地铁'
   }
 ]
 

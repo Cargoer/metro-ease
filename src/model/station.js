@@ -158,6 +158,8 @@ export default class Station {
     if (rotateAngle) {
       // this.shapeG.attr('transform', `rotate(${rotateAngle}, ${rotateCenter.x}, ${rotateCenter.y})`)
       this.shape.attr('transform', `rotate(${rotateAngle}, ${rotateCenter.x}, ${rotateCenter.y})`)
+    } else {
+      this.shape.attr('transform', '')
     }
   }
 

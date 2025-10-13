@@ -27,8 +27,22 @@
       <div class="fc" style="align-items: center; gap: 15px;">
         <p>当前默认保存为png格式图片</p>
         <!-- <el-checkbox v-model="saveWithBgImage" label="带底图保存" size="large" /> -->
-        <el-input v-model="imageName" placeholder="请输入图片名称" style="width: 200px;" />
-        <el-input v-model="watermarkText" placeholder="请输入水印文字" style="width: 200px;" />
+        <el-form :model="saveSetting">
+          <el-form-item label="图片名称" prop="imageName" required>
+            <el-input v-model="saveSetting.imageName" placeholder="请输入图片名称" style="width: 200px;" />
+          </el-form-item>
+          <el-form-item label="水印文字">
+            <el-input v-model="saveSetting.watermarkText" placeholder="需要的话请输入水印文字" style="width: 200px;" />
+          </el-form-item>
+          <el-form-item label="水印位置" v-if="saveSetting.watermarkText">
+            <el-select v-model="saveSetting.watermarkPosition" placeholder="请选择水印位置" style="width: 200px;">
+              <el-option label="左下角" value="bottom-left" />
+              <el-option label="右下角" value="bottom-right" />
+              <el-option label="左上角" value="top-left" />
+              <el-option label="右上角" value="top-right" />
+            </el-select>
+          </el-form-item>
+        </el-form>
       </div>
     </Dialog>
   </div>
@@ -118,14 +132,19 @@ function handleUploadBackground (url) {
   svg.loadBackground(url)
 }
 
-const watermarkText = ref('')
+const saveSetting = reactive({
+  imageName: '',
+  watermarkText: '',
+  watermarkPosition: 'bottom-left',
+  bgUrl: ''
+})
 function handleSaveSvgWithBg () {
-  if (!imageName.value) {
+  if (!saveSetting.imageName) {
     ElMessage.error('请输入图片名称')
     return
   }
   const drawPartG = svg.children['global_g'].children['draw_part'].node
-  saveSvgWithBg(drawPartG, saveWithBgImage.value ? svg.bgUrl : null, watermarkText.value, imageName.value)
+  saveSvgWithBg(drawPartG, saveSetting)
 }
 
 const mapType = { 'line135': 'from135', 'line90': 'from90' }

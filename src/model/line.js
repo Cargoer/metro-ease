@@ -501,6 +501,12 @@ export default class Line {
     if (index !== -1) {
       this.joints.splice(index, 1)
       this.generateD(this.joints)
+      if (joint.relatedStation) {
+        joint.relatedStation.removePoints({
+          key: 'relatedLine',
+          value: this
+        })
+      }
     }
   }
 
