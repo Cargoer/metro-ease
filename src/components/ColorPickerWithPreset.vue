@@ -64,7 +64,6 @@ const colorVal = computed({
     return props.color
   },
   set (val) {
-    console.log('colorPickerWithPreset set color:', val)
     if (isTransparent.value(val)) {
       emits('update:color', 'none')
     } else {

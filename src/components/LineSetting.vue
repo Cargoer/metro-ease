@@ -57,18 +57,8 @@
 import ColorPickerWithPreset from '@/components/ColorPickerWithPreset.vue'
 import { getRoundCornerD } from '@/tools/svgRelated'
 import { computed, watch } from 'vue'
-// drawStore
-// import { useDrawStore } from '@/store/drawStore'
-// import { storeToRefs } from 'pinia'
-// const drawStore = useDrawStore()
-// const { selectedElement } = storeToRefs(drawStore)
 
 const props = defineProps(['setting', 'target'])
-
-// const props.setting = computed(() => {
-//   console.log(props.targetSetting || ls)
-//   return props.targetSetting || ls
-// })
 
 const isTransparent = computed(() => {
   return color => color === 'none' || color.includes('transparent') || (color.includes('rgba') && color.slice(-2) === '0)')

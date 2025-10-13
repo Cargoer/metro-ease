@@ -18,7 +18,6 @@ function getSvgData (ele) {
 }
 
 export function exportJsonByInstance (ele, url = '') {
-  console.log('[exportJsonByInstance]', ele, url)
   exportJson({
     data: getSvgData(ele),
     bgUrl: url
@@ -31,7 +30,6 @@ export function exportJsonByInstance (ele, url = '') {
  * @param filename 导出的文件名（不含扩展名）
  */
 export function exportJson(data, filename = '我的地铁图数据') {
-  console.log('导出JSON数据:', data)
   try {
     // 将数据转换为JSON字符串，缩进2个空格
     const jsonStr = JSON.stringify(data, null, 2);
@@ -86,7 +84,6 @@ export function addNode (parentNode, children) {
 }
 
 function addInstance (parentNode, instance) {
-  console.log('addInstance instance:', parentNode, instance)
   if (!instance.children) {
     if (instance.id.includes('station')) {
       return new Station(parentNode, instance)
@@ -104,7 +101,6 @@ function addInstance (parentNode, instance) {
 }
 
 export function importJson(data, svgNode) {
-  console.log('导入JSON数据:', data)
   try {
     // addNode(svgNode, data.children)
     if (data.bgUrl) {

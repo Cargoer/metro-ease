@@ -63,7 +63,7 @@
               type="textarea"
               :rows="2"
               style="width: 250px;"
-              @change="(val) => {console.log(val);props.text.modifyContent(val)}"
+              @change="(val) => {props.text.modifyContent(val)}"
             />
           </el-form-item>
         </el-form>

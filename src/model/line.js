@@ -61,9 +61,7 @@ export default class Line {
     setTimeout(() => {
       this.joints.forEach(joint => {
         if (joint.relatedStationId) {
-          console.log('relatedStationId:', joint.relatedStationId)
           joint.relatedStation = this.root.children['global_g'].children['draw_part'].children['global_station_g'].children[joint.relatedStationId]
-          console.log('relatedStation:', joint.relatedStation)
         }
       })
       this.generateNode()
@@ -312,7 +310,6 @@ export default class Line {
       {
         title: '在该节点添加站点',
         action: (event) => {
-          console.log('action:', event)
           this.addStationInLine(joint)
           d3.select(event.target).attr('r', 6)
         }
@@ -362,7 +359,6 @@ export default class Line {
           joint.flag = !joint.flag
           this.generateD(this.joints)
           // this.setSelect(false)
-          console.log('e.target:', e.target)
           d3.select(e.target).attr('d', this.generateD([prevJoint, joint], true))
           this.refreshSelect()
         }
@@ -402,7 +398,6 @@ export default class Line {
       {
         title: '在此处新增节点',
         action: (event) => {
-          console.log('before add joint: ', this.joints)
           this.addJoint({
             ...joint,
             x: event.x,
@@ -416,7 +411,6 @@ export default class Line {
       {
         title: '在此处新增站点',
         action: (event) => {
-          console.log('action:', event)
           const newJoint = {
             ...joint,
             x: event.x,
@@ -457,7 +451,6 @@ export default class Line {
 
 
   setSelect (isSelected) {
-    console.log(`[setSelect] ${this.id} ${isSelected}`)
     if (isSelected) {
       selectedElement.value = this
       this.refreshSelect()
@@ -505,7 +498,6 @@ export default class Line {
 
   removeJoint (joint) {
     const index = this.joints.findIndex(item => item === joint)
-    console.log('remove joint index:', index)
     if (index !== -1) {
       this.joints.splice(index, 1)
       this.generateD(this.joints)
@@ -513,9 +505,7 @@ export default class Line {
   }
 
   moveJoint (match, newPos, fromStation = false) {
-    console.log('move joint!', match, this.joints)
     const joint = this.joints.find(item => item[match.key]?.id === match.value.id)
-    console.log('move find joint!', joint)
     if (joint) {
       joint.x = newPos.x
       joint.y = newPos.y

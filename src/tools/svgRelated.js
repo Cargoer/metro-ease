@@ -10,7 +10,6 @@ function getCornerEdge (point, pointC, r) {
   const c = Math.sqrt(dx * dx + dy * dy)
   const realR = Math.min(r, c / 2)
   let angle = Math.atan2(Math.abs(dy), Math.abs(dx))
-  // console.log('angle:', angle, Math.sin(angle), Math.cos(angle))
   const x3 = Math.round(pointC.x + realR * Math.cos(angle) * unitX)
   const y3 = Math.round(pointC.y + realR * Math.sin(angle) * unitY)
   return `${x3},${y3}`
@@ -146,7 +145,6 @@ export function getRectByPoints (points, r = 10) {
     const newHeight = getDistanceToLine(longestSide[3], longestSide[0], longestSide[1])
     result.height += newHeight
     const anotherPointAngle = getAngle(longestSide[0], longestSide[3])
-    console.log(getAngle(longestSide[0], longestSide[1]), getAngle(longestSide[0], longestSide[3]))
     if ((result.rotateAngle < 0 && (result.rotateAngle > anotherPointAngle || anotherPointAngle > result.rotateAngle + 180)) || 
         (result.rotateAngle > 0 && (result.rotateAngle < anotherPointAngle && anotherPointAngle < result.rotateAngle - 180))) {
       result.y -= newHeight
@@ -240,18 +238,16 @@ export function saveSvg(drawPartG, format = 'image/png', quality = 0.92) {
   img.src = url;
 }
 
-export async function saveSvgWithBg(drawPartG, href, watermarkText = '', format = 'image/png', quality = 0.95) {
+export async function saveSvgWithBg(drawPartG, href, watermarkText = '', imageName = '我的地铁图', format = 'image/png', quality = 0.95) {
   // 获取元素的边界框，确定需要保存的区域
   const { x, y, width, height } = drawPartG.node().getBBox();
   const padding = 100;
-  console.log('1')
   
   // 创建新的SVG元素
   const svgToSave = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svgToSave.setAttribute('width', width + padding * 2);
   svgToSave.setAttribute('height', height + padding * 2);
   svgToSave.setAttribute('viewBox', `${x - padding} ${y - padding} ${width + padding * 2} ${height + padding * 2}`);
-  console.log('2')
   
   // 添加底图相应的部分
   const background = document.createElementNS('http://www.w3.org/2000/svg', href ? 'image' : 'rect');
@@ -278,20 +274,17 @@ export async function saveSvgWithBg(drawPartG, href, watermarkText = '', format 
         // 将图片替换为dataURL
         background.setAttribute('href', canvas.toDataURL('image/png'));
         // 浏览器打开新标签页展示图片
-        console.log(canvas.toDataURL('image/png'));
         // 移除可能存在的xlink:href属性
         background.removeAttribute('xlink:href');
         resolve()
       };
       image.onerror = (e) => {
-        console.log('5', e)
         reject()
       };
 
       image.src = href
     })
 
-    console.log('background with href: ', background)
   }
   svgToSave.appendChild(background); // 先添加背景，确保它在最底层
   
@@ -339,31 +332,14 @@ export async function saveSvgWithBg(drawPartG, href, watermarkText = '', format 
     const ctx = canvas.getContext('2d');
     
     ctx.drawImage(img, 0, 0);
-    console.log('4')
 
-    // 输入保存名称
-    ElMessageBox.prompt('输入你想保存为的图片名称', '保存为图片', {
-      confirmButtonText: '确认',
-      cancelButtonText: '取消',
-      inputValue: '我的地铁图',
-      inputPattern: /\S+/,
-      inputErrorMessage: '请输入名称',
-    })
-      .then(({ value }) => {
-        console.log('5')
-        // 创建下载链接
-        const link = document.createElement('a');
-        link.download = value + '.' + format.split('/')[1];
-        link.href = canvas.toDataURL(format, quality);
-        link.click();
-        ElMessage.success('导出图片成功');
-        // 清理资源
-        URL.revokeObjectURL(url);
-      })
-      .catch(() => {
-        ElMessage.error('导出图片失败');
-        URL.revokeObjectURL(url);
-      });
+    const link = document.createElement('a');
+    link.download = imageName + '.' + format.split('/')[1];
+    link.href = canvas.toDataURL(format, quality);
+    link.click();
+    ElMessage.success('导出图片成功');
+    // 清理资源
+    URL.revokeObjectURL(url);
   };
 
   img.onerror = function(e) {
@@ -372,7 +348,6 @@ export async function saveSvgWithBg(drawPartG, href, watermarkText = '', format 
   }
   
   img.src = url;
-  console.log('6', img)
 }
 
 export function createBorderFilter(defs, params) {

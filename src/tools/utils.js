@@ -31,7 +31,6 @@ export function addContextMenu(node, options) {
   node.on('contextmenu', (event) => {
     event.preventDefault()
     const [x, y] = d3.pointer(event)
-    console.log('[addContextMenu]', event)
     const menuContainer = d3.select('#svg-container').append('div')
       .attr('class', 'context-menu fc')
       .style('position', 'absolute')
@@ -64,6 +63,5 @@ export function addContextMenu(node, options) {
           menuContainer.remove()
         })
     })
-    console.log('[addContextMenu]', menuContainer)
   })
 }

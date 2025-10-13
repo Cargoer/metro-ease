@@ -18,4 +18,8 @@ app.use(pinia)
 import router from './router/index.js'
 app.use(router)
 
+// 使用自定义指令
+import clickCounter from './directives/buriedPoint.js'
+app.directive('click-counter', clickCounter)
+
 app.mount('#app')

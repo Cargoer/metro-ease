@@ -26,7 +26,8 @@
     >
       <div class="fc" style="align-items: center; gap: 15px;">
         <p>当前默认保存为png格式图片</p>
-        <el-checkbox v-model="saveWithBgImage" label="带底图保存" size="large" />
+        <!-- <el-checkbox v-model="saveWithBgImage" label="带底图保存" size="large" /> -->
+        <el-input v-model="imageName" placeholder="请输入图片名称" style="width: 200px;" />
         <el-input v-model="watermarkText" placeholder="请输入水印文字" style="width: 200px;" />
       </div>
     </Dialog>
@@ -92,9 +93,9 @@ const bgHref = computed(() => {
 
 const elementDetailPanelVisible = ref(false)
 const saveDialogVisible = ref(false)
+const imageName = ref('')
 
 watch(() => selectedElement.value, (newVal) => {
-  console.log('[watch] selectedElement.value:', newVal)
   if (newVal) {
     elementDetailPanelVisible.value = true
   } else {
@@ -119,8 +120,12 @@ function handleUploadBackground (url) {
 
 const watermarkText = ref('')
 function handleSaveSvgWithBg () {
+  if (!imageName.value) {
+    ElMessage.error('请输入图片名称')
+    return
+  }
   const drawPartG = svg.children['global_g'].children['draw_part'].node
-  saveSvgWithBg(drawPartG, saveWithBgImage.value ? svg.bgUrl : null, watermarkText.value)
+  saveSvgWithBg(drawPartG, saveWithBgImage.value ? svg.bgUrl : null, watermarkText.value, imageName.value)
 }
 
 const mapType = { 'line135': 'from135', 'line90': 'from90' }
@@ -196,7 +201,6 @@ function handleSvgClick (event, pos) {
       if (jointRelatedStation) {
         curJointInfo.relatedStation = jointRelatedStation
       }
-      console.log('[handleSvgClick line] lineSetting:', lineSetting.value)
       drawLine.value = new Line(lineG, {
         joints: [curJointInfo],
         style: lineSetting.value
@@ -268,12 +272,6 @@ function clearCanvas () {
   // svg.loadBackground('')
 }
 
-// onBeforeRouteEnter((to, from, next) => {
-//   console.log('to', to)
-//   // clearCanvas()
-//   next()
-// })
-
 onBeforeRouteLeave((to, from, next) => {
   const confirmLeave = window.confirm('请确保绘图导出本地，否则会丢失，确定要离开吗？')
   if (confirmLeave) {
@@ -304,7 +302,6 @@ onMounted(async () => {
   name = route.params.name || 'new'
   if (name !== 'new') {
     const module = await import(`@/data/gallery/${name}.js`);
-    console.log('I am working')
     handleImportJson(module.default);
   }
 

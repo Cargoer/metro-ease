@@ -10,7 +10,6 @@ export async function messageBoxInput (title, tip, defaultValue) {
       inputPattern: /\S+/,
       inputErrorMessage: '请输入名称',
     }).then(({ value }) => {
-      console.log('value', value)
       resolve(value)
     }).catch(() => {
       reject()

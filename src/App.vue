@@ -1,5 +1,6 @@
 <script setup>
 import Dialog from '@/components/Dialog.vue'
+// import { increaseCount } from '@/request/airtable'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 const rewardUrl = 'https://youke1.picui.cn/s1/2025/10/10/68e869f745de7.jpg' // https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEDQIRo6Gnh6HJDEZlFvrGcTAbyWNDsUwAC8x8AAgUxQFf0fT53C6gudjYE.jpg
@@ -29,6 +30,7 @@ const keepAliveComponents = computed(() => {
     .map(route => route.name)
     .filter(Boolean) // 排除没有name的路由
 })
+
 </script>
 
 <template>
@@ -38,7 +40,7 @@ const keepAliveComponents = computed(() => {
     </keep-alive>
     <div class="fr about">
       <div class="about-item" @click="fastVisible = true" v-if="router.currentRoute.value.name === 'draw'">快捷键</div>
-      <div class="about-item" @click="encourageDialogVisible = true">鼓励作者</div>
+      <div class="about-item" v-click-counter="'CLICK_REWARD'" @click="encourageDialogVisible = true">鼓励作者</div>
       <div class="about-item" @click="contactDialogVisible = true">联系作者</div>
     </div>
     <Dialog

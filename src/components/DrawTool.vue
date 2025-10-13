@@ -151,12 +151,10 @@ function updateTool (toolValue) {
 }
 
 function handleBgImageSuccess (res, file) {
-  console.log('上传底图成功', res)
   emits('uploadBackground', URL.createObjectURL(file.raw))
 }
 
 function handleFileChange(file, fileList) {
-  console.log('文件已选择:', file, '文件列表:', fileList)
   emits('uploadBackground', URL.createObjectURL(file.raw))
   importBgDialogVisible.value = false
   // this.$refs.bgImageUpload.submit()
@@ -185,7 +183,6 @@ async function handleJsonChange (file) {
       try {
         // 解析JSON数据
         const jsonData = JSON.parse(e.target.result);
-        console.log('解析后的JSON数据:', jsonData);
         // 在这里可以处理你的JSON数据
         // this.processJsonData(jsonData);
         emits('importJson', jsonData)

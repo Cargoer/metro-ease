@@ -74,7 +74,6 @@ export default class Station {
         }
       })
       this.generateNode()
-      console.log('Station constructor points:', this.points)
     }, 100)
   }
 
@@ -110,7 +109,6 @@ export default class Station {
         selectedElement.value.setSelect(false)
       }
       selectedElement.value = this
-      console.log('setSelect:', this)
       this.selectedIndicator = this.g.append('rect')
         .attr('x', this.shape.node().getBBox().x - 2)
         .attr('y', this.shape.node().getBBox().y - 2)
@@ -119,7 +117,6 @@ export default class Station {
         .attr('stroke', '#f34718')
         .attr('stroke-width', 2)
         .attr('fill', 'none')
-      console.log('selectedIndicator:', this.selectedIndicator)
     } else {
       selectedElement.value = null
       this.selectedIndicator.remove()
@@ -208,7 +205,6 @@ export default class Station {
     const index = this.points.findIndex(point => point[match.key]?.id === match.value.id)
     if (index !== -1) {
       Object.assign(this.points[index], newPointInfo)
-      console.log('[modifyPoints]', this.points)
       this.generateShape()
     }
   }
@@ -221,7 +217,6 @@ export default class Station {
     const index = this.points.findIndex(point => point[match.key]?.id === match.value.id)
     if (index !== -1) {
       this.points.splice(index, 1)
-      console.log('[removePoints]', this.points)
       this.generateShape()
     }
   }
@@ -257,7 +252,6 @@ export default class Station {
   }
 
   sliceMove (dx, dy) {
-    console.log('[station] sliceMove:', dx, dy)
     this.move({
       x: this.points[0].x + dx,
       y: this.points[0].y + dy,

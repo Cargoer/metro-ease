@@ -135,7 +135,6 @@ export class Svg {
 
   // 设置平移缩放
   setZoom (minScale = 0.3, maxScale = 3, filter) {
-    console.log('[setZoom] ', pressedKeys.value)
     const zoom = d3.zoom()
       .scaleExtent([minScale, maxScale])
       // .translateExtent([[0, 0], [canvasWidth / minScale, canvasHeight / minScale]]) // 防止超出边界
@@ -243,7 +242,6 @@ export class Svg {
 
 export class Group {
   constructor (parent, settings) {
-    console.log(parent)
     const newGenerateId = settings.id || generateUniqueId('g')
     this.parent = parent
     this.node = parent.node.append("g").attr("id", newGenerateId)
@@ -262,7 +260,6 @@ export class Group {
     let result = null
     
     // if (this.children[id]) {
-    //   console.log('in my children')
     //   result = this.children[id]
     // }
     // else {
@@ -274,8 +271,6 @@ export class Group {
         }
       }
     // }
-    console.log('= Group findById id:', id, this.node.attr('id'), this.children, result)
-    console.log('\n')
     return result
   }
 }

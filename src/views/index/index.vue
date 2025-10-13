@@ -7,7 +7,13 @@
       </div>
       <div class="gallery entry-item">
         <span class="entry-title">图库</span>
-        <div v-for="gallery in galleries" :key="gallery.name" class="entry-btn" @click="jumpToCanvas(gallery.name)">{{ gallery.title }}</div>
+        <div
+          v-for="gallery in galleries" 
+          :key="gallery.name" 
+          v-click-counter="'CLICK_' + gallery.name.toUpperCase()"
+          class="entry-btn" 
+          @click="jumpToCanvas(gallery.name)"
+        >{{ gallery.title }}</div>
       </div>
     </div>
   </div>
@@ -77,6 +83,14 @@ function jumpToCanvas(galleryName) {
           background-color: #f0f0f0;
         }
       }
+    }
+  }
+}
+
+@media screen and (max-width: 500px) {
+  .page {
+    .center {
+      padding-left: 20px;
     }
   }
 }
