@@ -238,7 +238,7 @@ export function saveSvg(drawPartG, format = 'image/png', quality = 0.92) {
   img.src = url;
 }
 
-export async function saveSvgWithBg(drawPartG, { bgUrl = '', watermarkText = '', imageName = '我的地铁图', format = 'image/png', quality = 0.95, watermarkPosition = 'bottom-left' }) {
+export async function saveSvgWithBg(drawPartG, { bgType = 'none', bgUrl = '', watermarkText = '', imageName = '我的地铁图', format = 'image/png', quality = 0.95, watermarkPosition = 'bottom-left' }) {
   // 获取元素的边界框，确定需要保存的区域
   const { x, y, width, height } = drawPartG.node().getBBox();
   const padding = 100;
@@ -255,8 +255,8 @@ export async function saveSvgWithBg(drawPartG, { bgUrl = '', watermarkText = '',
   background.setAttribute('y', y - padding);
   background.setAttribute('width', width + padding * 2);
   background.setAttribute('height', height + padding * 2);
-  background.setAttribute('fill', 'white'); // 设置背景色
-  if (bgUrl) {
+  background.setAttribute('fill', bgType || 'white'); // 设置背景色
+  if (bgType === 'bgImg' && bgUrl) {
     await new Promise((resolve, reject) => {
       // 创建新图片对象加载图片
       const image = new Image();
@@ -269,7 +269,7 @@ export async function saveSvgWithBg(drawPartG, { bgUrl = '', watermarkText = '',
         canvas.width = width + padding * 2;
         canvas.height = height + padding * 2;
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(image, -padding, -padding);
+        ctx.drawImage(image, -x + padding, -y + padding);
         
         // 将图片替换为dataURL
         background.setAttribute('href', canvas.toDataURL('image/png'));

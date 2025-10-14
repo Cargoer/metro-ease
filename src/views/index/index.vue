@@ -1,5 +1,6 @@
 <template>
   <div class="page">
+    <div class="app-name">MetroEase</div>
     <div class="center">
       <div class="new entry-item">
         <span class="entry-title">新建</span>
@@ -7,13 +8,15 @@
       </div>
       <div class="gallery entry-item">
         <span class="entry-title">图库</span>
-        <div
-          v-for="gallery in galleries" 
-          :key="gallery.name" 
-          v-click-counter="'CLICK_' + gallery.name.toUpperCase()"
-          class="entry-btn" 
-          @click="jumpToCanvas(gallery.name)"
-        >{{ gallery.title }}</div>
+        <div class="gallery-list">
+          <div
+            v-for="gallery in galleries" 
+            :key="gallery.name" 
+            v-click-counter="'CLICK_' + gallery.name.toUpperCase()"
+            class="entry-btn" 
+            @click="jumpToCanvas(gallery.name)"
+          >{{ gallery.title }}</div>
+        </div>
       </div>
     </div>
   </div>
@@ -55,6 +58,20 @@ function jumpToCanvas(galleryName) {
   width: 100vw;
   height: 100vh;
   background-color: #d0dfe6;
+  position: relative;
+
+  .app-name {
+    position: absolute;
+    top: 30px;
+    left: 50px;
+    font-size: 60px;
+    font-weight: 700;
+    margin-bottom: 30px;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    background-image: linear-gradient(to bottom, #2177b8, #b0d5df);
+  }
   .center {
     display: flex;
     justify-content: center;
@@ -65,12 +82,19 @@ function jumpToCanvas(galleryName) {
 
     .entry-item {
       display: flex;
+      flex-direction: column;
       gap: 30px;
-      align-items: center;
+      align-items: flex-start;
 
       .entry-title {
         font-size: 24px;
         font-weight: 500;
+      }
+      .gallery-list {
+        display: flex;
+        max-width: 600px;
+        flex-wrap: wrap;
+        gap: 20px;
       }
       .entry-btn {
         width: 140px;
@@ -93,8 +117,17 @@ function jumpToCanvas(galleryName) {
 
 @media screen and (max-width: 500px) {
   .page {
+    .app-name {
+      font-size: 50px;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
     .center {
       padding-left: 20px;
+      .new {
+        display: none;
+      }
     }
   }
 }

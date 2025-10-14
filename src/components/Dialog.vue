@@ -94,8 +94,8 @@ const confirmDialog = () => {
 
 @media screen and (max-width: 500px) {
   .dialog-container {
-    min-width: none;
-    width: 90vw;
+    min-width: 100px;
+    width: 80vw;
   }
 }
 

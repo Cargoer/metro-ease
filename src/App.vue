@@ -67,7 +67,7 @@ const keepAliveComponents = computed(() => {
           </div>
         </div>
         <span>扩列QQ: 2245990708（扩列请备注易地铁）</span>
-        <span>QQ群: </span>
+        <span>QQ群: 837512598</span>
         <span>邮箱: 2245990708@qq.com</span>
       </div>
     </Dialog>
@@ -116,6 +116,19 @@ const keepAliveComponents = computed(() => {
     background-color: rgba(255, 255, 255, 0.8);
     border-radius: 4px;
     cursor: pointer;
+  }
+}
+
+@media screen and (max-width: 500px) {
+  .about {
+    top: calc(100vh - 50px);
+    // bottom: 5px;
+    right: 5px;
+    gap: 4px;
+    .about-item {
+      padding: 4px 6px;
+      font-size: 14px;
+    }
   }
 }
 </style>

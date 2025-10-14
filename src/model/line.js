@@ -379,7 +379,7 @@ export default class Line {
           joint.type = 'from135'
           joint.r = 10
           joint.flag = true
-          this.joints[index - 1].type = 'joint'
+          // this.joints[index - 1].type = 'joint'
           this.generateD(this.joints)
           this.refreshSelect()
         }
@@ -390,7 +390,7 @@ export default class Line {
           joint.type = 'from90'
           joint.r = 10
           joint.flag = true
-          this.joints[index - 1].type = 'joint'
+          // this.joints[index - 1].type = 'joint'
           this.generateD(this.joints)
           this.refreshSelect()
         }

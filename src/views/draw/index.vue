@@ -27,9 +27,16 @@
       <div class="fc" style="align-items: center; gap: 15px;">
         <p>当前默认保存为png格式图片</p>
         <!-- <el-checkbox v-model="saveWithBgImage" label="带底图保存" size="large" /> -->
-        <el-form :model="saveSetting">
+        <el-form :model="saveSetting" label-width="auto" label-position="right">
           <el-form-item label="图片名称" prop="imageName" required>
             <el-input v-model="saveSetting.imageName" placeholder="请输入图片名称" style="width: 200px;" />
+          </el-form-item>
+          <el-form-item label="背景" prop="bgType">
+            <el-select v-model="saveSetting.bgType" placeholder="请选择背景" style="width: 200px;">
+              <el-option label="透明" value="none" />
+              <el-option label="白色" value="white" />
+              <el-option label="使用底图" value="bgImg" v-if="svg && svg.bgUrl && !svg.bgUrl.startsWith('http')" />
+            </el-select>
           </el-form-item>
           <el-form-item label="水印文字">
             <el-input v-model="saveSetting.watermarkText" placeholder="需要的话请输入水印文字" style="width: 200px;" />
@@ -125,6 +132,11 @@ function handleExportSvg () {
 function handleImportJson (data) {
   if (!svg) return
   importJson(data, svg.children['global_g'])
+  const { width, height } = svg.children['global_g'].node.node().getBBox()
+  console.log(width, window.innerWidth)
+  const scale = window.innerWidth / width
+  console.log(scale)
+  svg.modifyZoom(scale)
 }
 
 function handleUploadBackground (url) {
@@ -136,12 +148,16 @@ const saveSetting = reactive({
   imageName: '',
   watermarkText: '',
   watermarkPosition: 'bottom-left',
+  bgType: 'white',
   bgUrl: ''
 })
 function handleSaveSvgWithBg () {
   if (!saveSetting.imageName) {
     ElMessage.error('请输入图片名称')
     return
+  }
+  if (saveSetting.bgType === 'bgImg') {
+    saveSetting.bgUrl = svg.bgUrl
   }
   const drawPartG = svg.children['global_g'].children['draw_part'].node
   saveSvgWithBg(drawPartG, saveSetting)

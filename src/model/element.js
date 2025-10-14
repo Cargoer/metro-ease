@@ -67,6 +67,19 @@ export class Svg {
     new Group(drawPartG, { id: 'global_text_g' }) // 绘制文本图层
   }
 
+  modifyZoom (scale = 1, x = 0, y = 0) {
+    // 创建一个变换对象
+    const transform = d3.zoomIdentity
+        .translate(x, y)  // 设置偏移
+        .scale(scale);    // 设置缩放比例
+
+    // 应用变换
+    this.node.transition().duration(300).call(
+      this.zoom.transform,
+      transform
+    );
+  }
+
   // 刷新画布（一般是由于长宽发生变化才刷新）
   refreshCanvas (width, height) {
     const canvasWidth = width || window.innerWidth
@@ -135,7 +148,7 @@ export class Svg {
 
   // 设置平移缩放
   setZoom (minScale = 0.3, maxScale = 3, filter) {
-    const zoom = d3.zoom()
+    this.zoom = d3.zoom()
       .scaleExtent([minScale, maxScale])
       // .translateExtent([[0, 0], [canvasWidth / minScale, canvasHeight / minScale]]) // 防止超出边界
       .on('zoom', (event) => {
@@ -161,7 +174,7 @@ export class Svg {
       })
 
     // 应用缩放和平移功能
-    this.node.call(zoom)
+    this.node.call(this.zoom)
   }
 
   transformCoords (x, y) {
