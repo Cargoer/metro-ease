@@ -19,6 +19,10 @@
         </div>
       </div>
     </div>
+    <p style="position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);">
+      交流QQ群：837512598<br>
+      现已引入mapbox底图，欢迎投稿你所绘制的地区轨交图
+    </p>
   </div>
 </template>
 
@@ -41,6 +45,10 @@ const galleries = [
   {
     name: 'hongkong',
     title: '香港地铁'
+  },
+  {
+    name: 'greatbay',
+    title: '大湾区轨交'
   }
 ]
 

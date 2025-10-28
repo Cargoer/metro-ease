@@ -17,11 +17,12 @@ function getSvgData (ele) {
   return result
 }
 
-export function exportJsonByInstance (ele, url = '') {
-  exportJson({
+export function exportJsonByInstance (ele, bgSetting) {
+  const json = {
+    bgSetting,
     data: getSvgData(ele),
-    bgUrl: url
-  })
+  }
+  exportJson(json)
 }
 
 /**
@@ -71,18 +72,6 @@ export function exportJson(data, filename = '我的地铁图数据') {
   }
 }
 
-export function addNode (parentNode, children) {
-  if (!children) return
-  for (const [id, eleData] of Object.entries(children)) {
-    if (eleData.removed) continue
-    let eleNode = parentNode.select(`#${id}`)
-    if (!eleNode.node()) {
-      eleNode = drawStore.appendSvgNode (parentNode, eleData.type, eleData)
-    }
-    addNode(eleNode, eleData.children)
-  }
-}
-
 function addInstance (parentNode, instance) {
   if (!instance.children) {
     if (instance.id.includes('station')) {
@@ -102,10 +91,7 @@ function addInstance (parentNode, instance) {
 
 export function importJson(data, svgNode) {
   try {
-    // addNode(svgNode, data.children)
-    if (data.bgUrl) {
-      svgNode.parent.loadBackground(data.bgUrl)
-    }
+    svgNode.parent.loadBackground(data.bgSetting)
     addInstance(svgNode, data.data)
     ElMessage.success('导入JSON数据成功');
     return true;

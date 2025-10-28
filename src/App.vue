@@ -41,7 +41,7 @@ const keepAliveComponents = computed(() => {
     <div class="fr about">
       <div class="about-item" @click="fastVisible = true" v-if="router.currentRoute.value.name === 'draw'">快捷键</div>
       <div class="about-item" v-click-counter="'CLICK_REWARD'" @click="encourageDialogVisible = true">鼓励作者</div>
-      <div class="about-item" @click="contactDialogVisible = true">联系作者</div>
+      <div class="about-item" v-click-counter="'CLICK_CONTACT'" @click="contactDialogVisible = true">联系作者</div>
     </div>
     <Dialog
       v-model:visible="encourageDialogVisible"

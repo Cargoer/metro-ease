@@ -13,6 +13,19 @@ export const useDrawStore = defineStore('draw', () => {
   const usedColors = ref([])
 
   const saveWithBgImage = ref(false)
+  const bgType = ref('')
+  const mapboxSetting = ref({
+    style: '',
+    center: [113.316, 23.1762],
+    zoom: 12.59,
+  })
+  const bgSetting = ref({
+    type: '',
+    url: '',
+    style: 'mapbox://styles/cargoer/ckz6wrijt001n15os1cgx7ypp',
+    center: [113.9024, 22.5161],
+    zoom: 12.59,
+  })
   
   // 路径相关
   const drawLine = ref(null)
@@ -71,20 +84,9 @@ export const useDrawStore = defineStore('draw', () => {
     mousePosition,
     pressedKeys,
     saveWithBgImage,
-    // selectedElementId,
-    // elementMovingStart,
-    // svgStructure,
-    // nodeStructure,
-    // appendSvgNode,
-    // modifySvgNode,
-    // removeSelectedSvgNode,
-    // removeSelection,
-    // exportSvg,
-    // modifyPathJoint,
-    // appendSvgNodeByJson,
-    // handleElementClick,
-    // handleElementMousedown,
-    // handleElementDoubleClick,
-    // getTransformedBBox,
+
+    bgType,
+    mapboxSetting,
+    bgSetting,
   }
 })

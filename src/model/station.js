@@ -44,6 +44,8 @@ export default class Station {
       strokeWidth: settings.style.strokeWidth || 3,
       fill: settings.style.fill || '#fff',
       radius: settings.style.radius || 8,
+      // 渐显
+      visibleWithTransition: settings.visibleWithTransition || false,
     }
     // 更多信息
     this.info = settings.info || {}
@@ -51,13 +53,26 @@ export default class Station {
     // 车站名称
     this.name = settings.name || '车站名'
     this.namePos = settings.namePos
+    if (settings.nameLatLng && this.root.bgSetting.type === 'mapbox') {
+      this.namePos = this.root.mapboxObj.project(settings.nameLatLng)
+    }
     this.englishName = 'engName'
     this.englishNamePos = settings.englishNamePos
     this.settings = settings
     this.nameMover = null
-
+    
     // 形状控制
     this.points = settings.points || []
+    if (this.points.length && this.root.bgSetting.type === 'mapbox') {
+      this.points.forEach(point => {
+        if (point.latLng) {
+          const posByLatLng = this.root.mapboxObj.project(point.latLng)
+          point.x = posByLatLng.x
+          point.y = posByLatLng.y
+        } 
+      })
+    }
+
     this.mover = null
 
     // 相关节点
@@ -83,24 +98,34 @@ export default class Station {
 
   // 浓缩为对象
   compress () {
-    return {
+    const json = {
       id: this.id,
       name: this.name,
       namePos: this.namePos,
       englishName: this.englishName,
       englishNamePos: this.englishNamePos,
-      points: this.points.map(point => ({
-        ...point,
-        relatedLine: null,
-        relatedLineId: point.relatedLine?.id || '',
-      })),
+      points: this.points.map(point => {
+        const pointObj = {
+          ...point,
+          relatedLine: null,
+          relatedLineId: point.relatedLine?.id || '',
+        }
+        if (this.root.bgSetting.type === 'mapbox') {
+          // 转换为实际坐标
+          const realPos = this.root.transformCoordsToReal(point.x, point.y)
+          pointObj.latLng = this.root.mapboxObj.unproject([realPos.x, realPos.y])
+        }
+        return pointObj
+      }),
       style: this.style,
-      // stroke: this.style.stroke,
-      // strokeWidth: this.style.strokeWidth,
-      // radius: this.style.radius,
-      // fill: this.style.fill,
       info: this.info,
     }
+    if (this.namePos && this.root.bgSetting.type === 'mapbox') {
+      // 转换为实际坐标
+      const realPos = this.root.transformCoordsToReal(this.namePos.x, this.namePos.y)
+      json.nameLatLng = this.root.mapboxObj.unproject([realPos.x, realPos.y])
+    }
+    return json
   }
 
   setSelect (isSelected) {
@@ -139,10 +164,31 @@ export default class Station {
         this.modifyName(name)
       })
     
+    // 渐显
+    if (this.style.visibleWithTransition) {
+      this.shape.style('opacity', 0)
+      this.text.style('opacity', 0)
+    }
+
     if (this.points.length) { // 有位置信息时才生成形状
       this.generateShape()
-      const { x, y, width, height } = this.shape.node().getBBox()
-      this.text.attr('x', this.namePos ? this.namePos.x : x + width).attr('y', this.namePos ? this.namePos.y : y + height)
+      // 渐显
+      if (this.style.visibleWithTransition) {
+        this.shape.transition()
+          .duration(200)
+          .ease(d3.easeLinear) // 设置为匀速
+          .style('opacity', 1)
+        this.text.transition()
+          .duration(200)
+          .ease(d3.easeLinear) // 设置为匀速
+          .style('opacity', 1)
+      }
+      if (!this.namePos) {
+        const { x, y, width, height } = this.shape.node().getBBox()
+        this.text.attr('x', x + width).attr('y', y + height)
+        this.namePos = { x: x + width + 5, y: y + height }
+      }
+      this.text.attr('x', this.namePos.x).attr('y', this.namePos.y)
     }
 
     this.addEventListener()
@@ -191,7 +237,7 @@ export default class Station {
   }
 
   appendPoint (point) {
-    if (this.points.length === 1 && !this.points[0].relatedLine) {
+    if (this.points.length === 1 && !this.points[0].relatedLine && point.relatedLine) {
       this.points[0].relatedLine = point.relatedLine
       this.style.stroke = point.relatedLine.style.stroke
       if (this.shape) {

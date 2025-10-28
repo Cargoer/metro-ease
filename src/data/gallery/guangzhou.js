@@ -1,4 +1,10 @@
 export default {
+  "bgSetting": {
+    "type": "url",
+    "url": "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEDFKxo3SgEypbN9AaqtjVLGC2YL0piZAACYRsAAs7-6Fa5BuNK1aVJkjYE.png",
+    "center": "[114, 23]",
+    "zoom": 13
+  },
   "data": {
     "id": "draw_part",
     "children": {

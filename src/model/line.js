@@ -48,13 +48,25 @@ export default class Line {
       isRoundCorner: settings.style.isRoundCorner || false,
       roundCornerRadius: settings.style.roundCornerRadius || 10,
       isClosed: settings.style.isClosed || false,
+      // 渐显
+      visibleWithOffset: settings.visibleWithOffset || false,
     }
 
     this.d = ''
     this.joints = settings.joints || []
+    if (this.root.bgSetting.type === 'mapbox') {
+      this.joints.forEach(joint => {
+        if (joint.latLng) {
+          const posByLatLng = this.root.mapboxObj.project(joint.latLng)
+          joint.x = posByLatLng.x
+          joint.y = posByLatLng.y
+        } 
+      })
+    }
+    
     this.addJointMode = 'push'
     this.g = this.parent.node.append("g").attr('id', `${this.id}_g`)
-    this.basicePath = null
+    this.basicPath = null
     this.additionalPath = null // 用于城际铁路展示
     this.selectG = this.g.append('g').attr('id', `${this.id}_select_g`)
     this.previewNode = null
@@ -73,11 +85,19 @@ export default class Line {
     return {
       id: this.id,
       name: this.name,
-      joints: this.joints.map(joint => ({
-        ...joint,
-        relatedStation: null,
-        relatedStationId: joint.relatedStation?.id || '',
-      })),
+      joints: this.joints.map(joint => {
+        const jointObj = {
+          ...joint,
+          relatedStation: null,
+          relatedStationId: joint.relatedStation?.id || '',
+        }
+        if (this.root.bgSetting.type === 'mapbox') {
+          // 转换为实际坐标
+          const realPos = this.root.transformCoordsToReal(jointObj.x, jointObj.y)
+          jointObj.latLng = this.root.mapboxObj.unproject([realPos.x, realPos.y])
+        }
+        return jointObj
+      }),
       style: this.style
     }
   }
@@ -87,7 +107,7 @@ export default class Line {
   }
 
   generateNode () {
-    this.basicePath = this.g.append("path").attr('id', this.id)
+    this.basicPath = this.g.append("path").attr('id', this.id)
       .attr('stroke', this.style.stroke).attr('stroke-width', this.style.strokeWidth).attr('fill', this.style.fill)
       .attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
       .attr('d', this.d).attr('pointer-events', 'stroke')
@@ -97,6 +117,7 @@ export default class Line {
       .attr('stroke-linejoin', 'round')
       .attr('d', this.d).attr('pointer-events', 'stroke')
 
+    
     this.refreshStyle()
 
     this.addEventListeners()
@@ -109,18 +130,18 @@ export default class Line {
   refreshStyle (styleObj) {
     if (styleObj) {
       for (let [key, value] of Object.entries(styleObj)) {
-        this.basicePath.attr(key, value)
+        this.basicPath.attr(key, value)
       }
     } else {
-      this.basicePath
+      this.basicPath
         .attr('stroke', this.style.stroke)
         .attr('stroke-width', this.style.strokeWidth)
         .attr('fill', this.style.fill)
 
       switch (this.style.pattern) {
         case 'dashed':
-          this.basicePath.attr('stroke-dasharray', this.style.dashArray)
-          this.basicePath.attr('stroke-dashoffset', '0')
+          this.basicPath.attr('stroke-dasharray', this.style.dashArray)
+          this.basicPath.attr('stroke-dashoffset', '0')
           break
         case 'railway':
           this.additionalPath
@@ -136,7 +157,7 @@ export default class Line {
             .attr('stroke-dasharray', '')
           break
         default:
-          this.basicePath.attr('stroke-dasharray', '')
+          this.basicPath.attr('stroke-dasharray', '')
           this.additionalPath
             .attr('stroke-dasharray', '')
             .attr('stroke', 'none')
@@ -210,14 +231,14 @@ export default class Line {
   generateD (joints, readOnly = false) {
     if (joints.length < 2) return
 
-    // if (!readOnly && !this.style.isClosed) {
-    //   this.parent.parent.node.select(`#${this.id}_start`).remove()
-    //   this.parent.parent.node.select(`#${this.id}_end`).remove()
-    //   // if (tool.value.includes('line')) { // 绘制路径模式下添加首尾延伸感应点
-    //     this.addEndPointNode(joints[0], 0)
-    //     this.addEndPointNode(joints[joints.length - 1], joints.length - 1)
-    //   // }
-    // }
+    if (!readOnly && !this.style.isClosed) {
+      this.parent.parent.node.select(`#${this.id}_start`).remove()
+      this.parent.parent.node.select(`#${this.id}_end`).remove()
+      // if (tool.value.includes('line')) { // 绘制路径模式下添加首尾延伸感应点
+        this.addEndPointNode(joints[0], 0)
+        this.addEndPointNode(joints[joints.length - 1], joints.length - 1)
+      // }
+    }
 
     let d = ''
     joints.forEach((joint, index) => {
@@ -256,8 +277,18 @@ export default class Line {
     if (this.style.isClosed) d += 'Z'
     if (!readOnly) {
       this.d = d
-      this.basicePath.attr('d', d)
+      this.basicPath.attr('d', d)
       this.additionalPath.attr('d', d)
+
+      const pathLength = this.basicPath.node().getTotalLength()
+
+      // 渐显
+      if (this.style.visibleWithOffset) {
+        this.basicPath.attr('stroke-dasharray', pathLength)
+        this.additionalPath.attr('stroke-dasharray', pathLength)
+        this.basicPath.attr('stroke-dashoffset', pathLength)
+        this.additionalPath.attr('stroke-dashoffset', pathLength)
+      }
 
       if (this.previewNode) { // 已绘制，清除预览
         this.previewNode.remove()
@@ -464,7 +495,7 @@ export default class Line {
   }
 
   addEventListeners () {
-    this.basicePath
+    this.basicPath
       .on('click', (e) => {
         if (tool.value === 'select') { // 选中该路径
           e.stopPropagation()
@@ -532,7 +563,7 @@ export default class Line {
     if (selectedElement.value === this) {
       this.setSelect(false)
     }
-    this.basicePath.remove()
+    this.basicPath.remove()
     this.joints.forEach(joint => {
       if (joint.relatedStation) {
         joint.relatedStation.removePoints({

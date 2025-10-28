@@ -19,12 +19,18 @@ let drawStore = null
 let pressedKeys = null
 let zoomInfo = null
 let selectedElement = null
+let bgSetting = null
+
+// mapbox相关
+import mapboxgl from 'mapbox-gl'
+const mapboxAccessToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN
 
 function initStore () {
   drawStore = useDrawStore()
   pressedKeys = storeToRefs(drawStore).pressedKeys
   zoomInfo = storeToRefs(drawStore).zoomInfo
   selectedElement = storeToRefs(drawStore).selectedElement
+  bgSetting = storeToRefs(drawStore).bgSetting
 }
 
 export class Svg {
@@ -37,8 +43,15 @@ export class Svg {
     this.basicCellSize = 10
     this.children = {}
     this.root = this
-    this.bgUrl = ''
+
+    this.bgSetting = {}
     this.canvas = null
+    this.mapboxObj = null
+    this.formerZoomInfo = {
+      x: 0,
+      y: 0,
+      k: 1
+    }
     // this.initMainG()
     this.refreshCanvas(width, height)
   }
@@ -55,11 +68,7 @@ export class Svg {
   // 初始化主要图层
   initMainG () {
     const globalG = new Group(this, { id: 'global_g' }) // 全局图层
-    const backgroundG = new Group(globalG, { id: 'background' }) // 背景图层
-    // backgroundG.node.append('image')
-    //   .attr('id', 'background-image')
-    //   .attr('x', 0)
-    //   .attr('y', 0)
+    new Group(globalG, { id: 'background' }) // 背景图层
     new Group(globalG, { id: 'grid' }) // 网格图层（参考，不导出）
     const drawPartG = new Group(globalG, { id: 'draw_part' }) // 绘制图层
     new Group(drawPartG, { id: 'global_line_g' }) // 绘制线路图层
@@ -72,7 +81,14 @@ export class Svg {
     const transform = d3.zoomIdentity
         .translate(x, y)  // 设置偏移
         .scale(scale);    // 设置缩放比例
-
+    
+    if (this.mapboxObj) {
+      this.updateMapboxZoomByD3({
+        transform,
+        sourceEvent: { clientX: 0, clientY: 0 },
+      })
+    }
+    
     // 应用变换
     this.node.transition().duration(300).call(
       this.zoom.transform,
@@ -87,9 +103,6 @@ export class Svg {
 
     if (!this.canvas) {
       this.canvas = document.createElement('canvas')
-      // this.canvas.style.zIndex = 0
-      // this.canvas.style.position = 'absolute'
-      // this.canvas.style.pointerEvents = 'none'
       const canvasDiv = document.createElement('div')
       canvasDiv.style.position = 'absolute'
       canvasDiv.style.zIndex = 0
@@ -103,7 +116,6 @@ export class Svg {
     if (!this.node) 
       this.node = d3.select(`#${this.containerId}`).append('svg')
       .style('z-index', 1)
-      // .style('position', 'absolute')
       .style('pointer-events', 'all')
     this.node.attr('width', canvasWidth).attr('height', canvasHeight)
 
@@ -146,24 +158,73 @@ export class Svg {
     this.setZoom()
   }
 
+  updateMapboxCenterByD3 (event) {
+    if (!this.mapboxObj) return
+
+    // 获取 D3 当前平移状态
+    const { x, y, k } = event.transform;
+
+    const currentCenter = this.mapboxObj.getCenter()
+    const newCenterScreen = this.mapboxObj.project(currentCenter); // 缩放后当前中心点的屏幕坐标
+    const deltaX = x - this.formerZoomInfo.x
+    const deltaY = y - this.formerZoomInfo.y
+    const newCenterPxPos = new mapboxgl.Point(
+      newCenterScreen.x - deltaX,
+      newCenterScreen.y - deltaY
+    );
+    const newCenterLngLatPos = this.mapboxObj.unproject(newCenterPxPos); // 转换为经纬度
+    this.mapboxObj.setCenter(newCenterLngLatPos);
+  }
+
+  updateMapboxZoomByD3 (event) {
+    if (!this.mapboxObj) return
+
+    // 获取 D3 当前缩放状态
+    const { k } = event.transform;
+
+    // 先记录正确缩放中心的屏幕坐标（以鼠标位置作为缩放中心）
+    const x1 = event.sourceEvent.clientX
+    const y1 = event.sourceEvent.clientY
+    console.log('x1, y1', x1, y1)
+    const realCenterLatLng = this.mapboxObj.unproject(new mapboxgl.Point(x1, y1))
+
+    // 同步缩放
+    this.mapboxObj.setZoom(this.bgSetting.zoom + Math.log2(k));
+    // 校正缩放中心
+    const realCenterLatLng_px_afterZoom = this.mapboxObj.project(realCenterLatLng)
+    const deltaX = realCenterLatLng_px_afterZoom.x - x1
+    const deltaY = realCenterLatLng_px_afterZoom.y - y1
+    const currentCenter = this.mapboxObj.getCenter()
+    const newCenterScreen = this.mapboxObj.project(currentCenter); // 缩放后当前中心点的屏幕坐标
+    const adjustedCenterScreen = new mapboxgl.Point(
+      newCenterScreen.x + deltaX,
+      newCenterScreen.y + deltaY
+    );
+    const adjustedCenter = this.mapboxObj.unproject(adjustedCenterScreen); // 转换为经纬度
+    this.mapboxObj.setCenter(adjustedCenter);
+  }
+
   // 设置平移缩放
-  setZoom (minScale = 0.3, maxScale = 3, filter) {
+  setZoom (minScale = 0.1, maxScale = 5, filter) {
     this.zoom = d3.zoom()
       .scaleExtent([minScale, maxScale])
       // .translateExtent([[0, 0], [canvasWidth / minScale, canvasHeight / minScale]]) // 防止超出边界
       .on('zoom', (event) => {
         zoomInfo.value = event.transform
+        console.log('event', event)
         this.children['global_g'].node.attr('transform', event.transform)
 
-        // const scale = event.transform.k
-        // const img = this.children['global_g'].children['background'].children['background-image'].node
-        // if (scale > 2 && img.attr("data-resolution") !== "high") {
-        //   img.attr("data-resolution", "high");
-        // } else if (scale <= 2 && img.attr("data-resolution") !== "low") {
-        //   img.attr("data-resolution", "low");
-        // }
+        if (this.bgSetting.type === 'url') this.drawCanvasBg()
+        if (this.mapboxObj) {
+          const action = event.sourceEvent.type || 'unknown'
+          console.log('action', action)
+          if (action === 'wheel') this.updateMapboxZoomByD3(event)
+          else this.updateMapboxCenterByD3(event)
+        }
 
-        if (this.bgUrl) this.drawCanvasBg()
+        this.formerZoomInfo.x = event.transform.x
+        this.formerZoomInfo.y = event.transform.y
+        this.formerZoomInfo.k = event.transform.k
       })
       .filter((e) => {
         // 如果是双击事件，不应用zoom行为
@@ -185,6 +246,14 @@ export class Svg {
     }
   }
 
+  transformCoordsToReal (x, y) {
+    const { k, x: tx, y: ty } = zoomInfo.value || {}
+    return {
+      x: Math.round((x * k) + tx),
+      y: Math.round((y * k) + ty)
+    }
+  }
+
   addEventListeners (funcObj) {
     this.node.on('click', (e) => {
       const [x, y] = d3.pointer(e, this.node.node());
@@ -200,21 +269,28 @@ export class Svg {
     this.node.on('mouseup', funcObj.mouseup)
   }
 
-  loadBackground (url) {
-    this.bgUrl = url
-    // const backgroundImage = d3.select('#background-image')
-    // backgroundImage
-    //   .attr('xlink:href', url)
-    //   .on('load', () => {
-    //     const { width, height } = backgroundImage.node().getBBox()
-    //     this.refreshCanvas(width, height)
-    //   })
+  loadBackground (bgSetting) {
+    this.bgSetting = bgSetting
+    if (this.bgSetting.type === 'mapbox') {
+      if (!this.mapboxObj) {
+        if (!mapboxAccessToken) return
+        this.mapboxObj = new mapboxgl.Map({
+          container: 'mapbox-container',
+          style: this.bgSetting.style || 'mapbox://styles/mapbox/streets-v11',
+          center: this.bgSetting.center || [114.0683, 22.5431],
+          zoom: this.bgSetting.zoom || 12,
+          accessToken: mapboxAccessToken
+        })
+      }
+      return
+    }
 
     // 加载原始图像并准备瓦片
+    if (!this.bgSetting.url) return
     return new Promise((resolve) => {
       this.bgImage = new Image();
       // 替换为你的底图URL
-      this.bgImage.src = url; 
+      this.bgImage.src = this.bgSetting.url; 
       this.bgImage.onload = () => {
         const { width, height } = this.bgImage
         this.refreshCanvas(width, height)
@@ -225,7 +301,7 @@ export class Svg {
   }
 
   async drawCanvasBg () {
-    if (!this.bgImage) await this.loadBackground();
+    if (!this.bgImage) await this.loadBackground(this.bgSetting);
   
     const ctx = this.canvas.getContext('2d');
     const { width, height } = this.canvas;
@@ -294,20 +370,13 @@ export class Text {
     this.parent = parent
     parent.children[this.id] = this
     this.content = settings.content || '点击编辑文本'
-    this.pos = settings.pos || { x: 0, y: 0 }
+    this.root = parent.root || null
 
-    // this.settings = {
-    //   pos: settings.pos || { x: 0, y: 0 },
-    //   // textColor: settings.textColor || '#000000',
-    //   // fontSize: settings.fontSize || 20,
-    //   // withBg: settings.withBg || false,
-    //   // bgColor: settings.bgColor || 'none',
-    //   // withBorder: settings.withBorder || false,
-    //   // borderColor: settings.borderColor || 'none',
-    //   // padding: settings.padding || '10 8',
-    //   // borderRadius: settings.borderRadius || 10,
-    //   content: settings.content || '双击编辑文本',
-    // }
+    if (settings.latLng && this.root.bgSetting.type === 'mapbox') { // 以mapbox为底图的json导入
+      this.pos = this.root.mapboxObj.project(settings.latLng || [0, 0])
+    } else {
+      this.pos = settings.pos || { x: 0, y: 0 }
+    }
 
     this.style = {
       textColor: settings.style.textColor, 
@@ -318,11 +387,6 @@ export class Text {
       padding: settings.style.padding,
       borderRadius: settings.style.borderRadius,
     }
-
-    // this.text = settings.text || '双击编辑文本'
-    // this.color = settings.color || '#000000'
-    // this.bgColor = settings.bgColor || 'none'
-    // this.borderRadius = settings.borderRadius || 10
     
     this.g = parent.node.append("g").attr("id", `${this.id}_g`)
     this.bgNode = this.g.append("rect").attr("id", `${this.id}_bg`)
@@ -340,12 +404,27 @@ export class Text {
     this.display()
   }
   compress () {
-    return {
+    const obj = {
       id: this.id,
-      pos: this.pos,
+      // pos: this.pos,
       content: this.content,
       style: this.style,
     }
+    if (this.root && this.root.bgSetting.type === 'mapbox') {
+      // 转换为实际坐标
+      const realPos = this.root.transformCoordsToReal(this.pos.x, this.pos.y)
+      obj.latLng = this.root.mapboxObj.unproject({
+        x: realPos.x,
+        y: realPos.y,
+      })
+    } else {
+      obj.pos = this.pos
+    }
+    return obj
+  }
+
+  findById (id) {
+    return id === this.id ? this : null
   }
 
   modifyContent (content) {

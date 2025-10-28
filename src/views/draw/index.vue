@@ -3,7 +3,7 @@
   <div class="fc">
     <DrawTool
       class="draw-tool" 
-      @uploadBackground="handleUploadBackground" 
+      @submitBackground="(v) => svg.loadBackground(v)" 
       @saveSvg="saveDialogVisible = true"
       @exportSvg="handleExportSvg"
       @importJson="handleImportJson($event)"
@@ -12,12 +12,14 @@
     <!-- 画布逻辑 -->
     <div id="draw-container">
       <div id="canvas-container" style="position: absolute; top: 0; left: 0; z-index: 0; pointer-events: none;"></div>
+      <div id="mapbox-container" style="position: absolute; top: 0; left: 0; z-index: 0; pointer-events: none;"></div>
       <div id="svg-container" style="position: absolute; top: 0; left: 0; z-index: 2; pointer-events: all;"></div>
       <div class="zoom-info fr">
         <div class="zoom-info-item">{{ zoomInfo.k.toFixed(2) }} ×</div>
       </div>
     </div>
     <ElementDetailPanel v-model:visible="elementDetailPanelVisible" />
+    <!-- <el-button type="primary" class="dynamic-demo-btn" @click="handleDynamicClick">动态演示测试</el-button> -->
     <Dialog
       v-model:visible="saveDialogVisible"
       title="保存为图片"
@@ -66,6 +68,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import moment from 'moment'
 import * as d3 from 'd3'
 
+
 // 获取路由实例和当前路由对象
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
 const router = useRouter()
@@ -86,7 +89,7 @@ import {
   getDistance,
 } from '@/tools/svgRelated.js'
 
-import { Svg, Text } from '@/model/element.js'
+import { Svg, Text, Group } from '@/model/element.js'
 import Station from '@/model/station.js'
 import Line from '@/model/line.js'
 
@@ -108,6 +111,13 @@ const {
   saveWithBgImage
 } = storeToRefs(drawStore)
 
+import dynamicData from '@/data/dynamic/shenzhen.js'
+import { dynamicDisplay } from '@/tools/dynamic.js'
+
+function handleDynamicClick () {
+  dynamicDisplay(svg, dynamicData)
+}
+
 const bgHref = computed(() => {
   return backgroundG.select('image').attr('xlink:href')
 })
@@ -126,17 +136,19 @@ watch(() => selectedElement.value, (newVal) => {
 
 function handleExportSvg () {
   const drawPartG = svg.children['global_g'].children['draw_part']
-  exportJsonByInstance(drawPartG, svg.bgUrl)
+  exportJsonByInstance(drawPartG, svg.bgSetting)
 }
 
 function handleImportJson (data) {
   if (!svg) return
   importJson(data, svg.children['global_g'])
-  const { width, height } = svg.children['global_g'].node.node().getBBox()
-  console.log(width, window.innerWidth)
-  const scale = window.innerWidth / width
-  console.log(scale)
-  svg.modifyZoom(scale)
+
+  // TODO: 缩放地图到合适大小
+  // const { width, height } = svg.children['global_g'].children['draw_part'].node.node().getBBox()
+  // console.log(width, height)
+  // if (width < window.innerWidth) return
+  // const scale = window.innerWidth / width
+  // svg.modifyZoom(scale)
 }
 
 function handleUploadBackground (url) {
@@ -190,7 +202,7 @@ function handleSvgClick (event, pos) {
     const textG = svg.children['global_g'].children['draw_part'].children['global_text_g']
     new Text(textG, {
       pos,
-      style: textSetting.value
+      style: textSetting.value,
     })
     return
   }
@@ -322,7 +334,6 @@ function loadGalleryJson (json) {
   importJson(json)
 }
 
-
 let svg = null
 let name = ''
 onMounted(async () => {  
@@ -435,4 +446,20 @@ onMounted(async () => {
   z-index: 20;
 }
 
+.dynamic-demo-btn {
+  position: absolute;
+  bottom: 60px;
+  left: 20px;
+  z-index: 20;
+}
+
+#mapbox-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  pointer-events: none;
+  width: 100vw;
+  height: 100vh;
+}
 </style>

@@ -1,4 +1,10 @@
 export default {
+  "bgSetting": {
+    "type": "url",
+    "url": "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEDWcpo7MRqgksNqR1Gr99NBU6KgweUGwACiR8AAiy-aVfCZKuiO7CFEjYE.png",
+    "center": "[114.0683, 22.5431]",
+    "zoom": 12.59
+  },
   "data": {
     "id": "draw_part",
     "children": {
@@ -6134,5 +6140,6 @@ export default {
       }
     }
   },
+  "bgType": "url",
   "bgUrl": "https://img.remit.ee/api/file/BQACAgUAAyEGAASHRsPbAAEDWcpo7MRqgksNqR1Gr99NBU6KgweUGwACiR8AAiy-aVfCZKuiO7CFEjYE.png"
 }

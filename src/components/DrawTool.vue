@@ -71,26 +71,47 @@
       width="500"
     >
       <el-form ref="importBgForm" label-width="100px">
-        <el-form-item label="底图URL">
-          <el-input v-model="inputBgUrl" placeholder="请输入图片网络链接" />
-          <el-button type="primary" @click="submitInputBgUrl" style="margin-top: 8px;">确定</el-button>
+        <el-form-item label="底图类型">
+          <el-select v-model="bgSetting.type" placeholder="请选择底图类型">
+            <el-option label="网络图片" value="url" />
+            <el-option label="本地图片" value="local" />
+            <el-option label="Mapbox" value="mapbox" />
+          </el-select>
         </el-form-item>
-        <el-divider content-position="left">或</el-divider>
-        <el-form-item label="上传底图">
-          <el-upload
-            ref="bgImageUpload"
-            :show-file-list="false"
-            :on-success="handleBgImageSuccess"
-            :on-error="handleBgImageError"
-            :on-change="handleFileChange"
-            action="#"
-            :auto-upload="false"
-          >
-            <template #trigger>
-              <el-button type="primary">上传底图</el-button>
-            </template>
-          </el-upload>
-        </el-form-item>
+        <template v-if="bgSetting.type === 'url'">
+          <el-form-item  label="底图URL">
+            <el-input v-model="bgSetting.url" placeholder="请输入图片网络链接" required />
+            <el-button type="primary" @click="submitBackground" style="margin-top: 8px;">确定</el-button>
+          </el-form-item>
+        </template>
+        <template v-else-if="bgSetting.type === 'local'">
+          <el-form-item label="上传底图">
+            <el-upload
+              ref="bgImageUpload"
+              :show-file-list="false"
+              :on-change="handleFileChange"
+              action="#"
+              :auto-upload="false"
+            >
+              <template #trigger>
+                <el-button type="primary">上传底图</el-button>
+              </template>
+            </el-upload>
+          </el-form-item>
+        </template>
+        <template v-else-if="bgSetting.type === 'mapbox'">
+          <el-form-item label="中心经纬度" >
+            <el-input type="number" v-model.number="bgSetting.center[0]" placeholder="经度" style="width: 100px; display: inline-block; margin-right: 8px;" />
+            <el-input type="number" v-model.number="bgSetting.center[1]" placeholder="纬度" style="width: 100px; display: inline-block;" />
+          </el-form-item>
+          <el-form-item label="缩放级别">
+            <el-input type="number" v-model.number="bgSetting.zoom" placeholder="请输入Mapbox缩放级别" />
+          </el-form-item>
+          <el-form-item label="样式URL">
+            <el-input v-model="bgSetting.style" placeholder="请输入Mapbox样式URL" />
+          </el-form-item>
+          <el-button type="primary" @click="submitBackground" style="margin-top: 8px;">确定</el-button>
+        </template>
       </el-form>
     </Dialog>
   </div>
@@ -110,36 +131,12 @@ import Dialog from '@/components/Dialog.vue'
 import { useDrawStore } from '@/store/drawStore.js'
 import { storeToRefs } from 'pinia'
 const drawStore = useDrawStore()
-const { tool, lineSetting, stationSetting, textSetting } = storeToRefs(drawStore)
+const { tool, lineSetting, stationSetting, textSetting, bgType, mapboxSetting, bgSetting } = storeToRefs(drawStore)
 
 const importBgDialogVisible = ref(false)
-const inputBgUrl = ref('')
 
-const linePatterns = [
-  {
-    label: '虚线',
-    value: 'dashed',
-    svg: '<path d="M2,2 L22,22" stroke="#fff" stroke-width="2" fill="none" stroke-dasharray="4,3" />'
-  },
-  {
-    label: '铁路',
-    value: 'railway',
-    svg: '\
-      <path d="M2,2 L22,22" stroke="#fff" stroke-width="2" fill="none" stroke-dasharray="4,3" />\
-      <defs>\
-        <linearGradient id="railwayGradient" x1="0" y1="0" x2="1" y2="1">\
-          <stop offset="0%" stop-color="#EED01D" />\
-          <stop offset="100%" stop-color="#005DA4" />\
-        </linearGradient>\
-      </defs>\
-    '
-  }
-]
-
-// const props = defineProps([ 'toolSetting' ])
 const emits = defineEmits([ 
-  // 'update:toolSetting', 
-  'uploadBackground', 
+  'submitBackground', 
   'saveSvg', 
   'exportSvg',
   'importJson',
@@ -150,23 +147,14 @@ function updateTool (toolValue) {
   tool.value = toolValue
 }
 
-function handleBgImageSuccess (res, file) {
-  emits('uploadBackground', URL.createObjectURL(file.raw))
-}
-
 function handleFileChange(file, fileList) {
-  emits('uploadBackground', URL.createObjectURL(file.raw))
-  importBgDialogVisible.value = false
-  // this.$refs.bgImageUpload.submit()
+  bgSetting.value.url = URL.createObjectURL(file.raw)
+  submitBackground()
 }
 
-function submitInputBgUrl () {
-  emits('uploadBackground', inputBgUrl.value)
+function submitBackground () {
+  emits('submitBackground', bgSetting.value)
   importBgDialogVisible.value = false
-}
-
-function handleBgImageError (err, file) {
-  console.error('上传底图失败:', err, '文件信息:', file)
 }
 
 function handleJsonImport (res, file) {
