@@ -25,6 +25,18 @@ function initStore () {
   drawLine = storeToRefs(drawStore).drawLine
 }
 
+class Section {
+  constructor (settings) {
+    this.id = settings.id || generateUniqueId('section')
+    this.line = settings.line || null
+    this.startJoint = settings.startJoint || null
+    this.endJoint = settings.endJoint || null
+    this.style = settings.style || {}
+  }
+
+  
+}
+
 export default class Line {
   constructor (parent, settings) {
     if (!drawStore) {
@@ -36,7 +48,6 @@ export default class Line {
     this.name = settings.name || this.id
     this.root = parent.root || null
     parent.children[this.id] = this
-    this.root.lineMap[this.id] = this
 
     this.style = {
       stroke: settings.style.stroke || '#000',
@@ -67,11 +78,32 @@ export default class Line {
     
     this.addJointMode = 'push'
     this.g = this.parent.node.append("g").attr('id', `${this.id}_g`)
-    this.basicPath = null
-    this.additionalPath = null // 用于城际铁路展示
+    this.sections = []
+    this.initSections()
     this.selectG = this.g.append('g').attr('id', `${this.id}_select_g`)
     this.previewNode = null
-    this.generateNode()
+  }
+
+  initSections () {
+    let sectionObj = null
+    for (let i = 0; i < this.joints.length - 1; i++) {
+      if (!sectionObj) {
+        sectionObj = {
+          id: `${this.id}_section_${i}`,
+          line: this,
+          startJoint: this.joints[i],
+          endJoint: this.joints[i + 1],
+          style: this.style,
+        }
+      }
+      this.sections.push({
+        id: `${this.id}_section_${i}`,
+        line: this,
+        startJoint: this.joints[i],
+        endJoint: this.joints[i + 1],
+        style: this.style,
+      })
+    }
   }
 
   // 浓缩为对象
@@ -80,7 +112,10 @@ export default class Line {
       id: this.id,
       name: this.name,
       joints: this.joints.map(joint => {
-        const jointObj = { ...joint }
+        const jointObj = {
+          ...joint,
+          relatedStationId: joint.relatedStation?.id || '',
+        }
         if (this.root.bgSetting.type === 'mapbox') {
           // 转换为实际坐标
           const realPos = this.root.transformCoordsToReal(jointObj.x, jointObj.y)
@@ -95,17 +130,6 @@ export default class Line {
   }
 
   generateNode () {
-    this.basicPath = this.g.append("path").attr('id', this.id)
-      .attr('stroke', this.style.stroke).attr('stroke-width', this.style.strokeWidth).attr('fill', this.style.fill)
-      .attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
-      .attr('d', this.d).attr('pointer-events', 'stroke')
-    
-    this.additionalPath = this.g.append("path").attr('id', `${this.id}_additional`)
-      .attr('stroke', 'none').attr('stroke-width', Math.round(this.style.strokeWidth * this.style.innerStrokePercent)).attr('fill', 'none')
-      .attr('stroke-linejoin', 'round')
-      .attr('d', this.d).attr('pointer-events', 'stroke')
-
-    
     this.refreshStyle()
 
     this.addEventListeners()
@@ -178,37 +202,33 @@ export default class Line {
     }
   }
 
-  setExtendNode () {
-    for (let index of [0, this.joints.length - 1]) {
-      const joint = this.joints[index]
-      this.parent.parent.node.append('circle')
-        .attr('cx', joint.x).attr('cy', joint.y)
-        .attr('r', this.style.strokeWidth / 2)
-        .attr('fill', 'red')
-        .attr('class', `extend-node`)
-        .style('opacity', 0)
-        .on('mouseenter', (e) => {
-          
-          if (tool.value.includes('line') && !drawLine.value) {
-            d3.select(e.target).transition().duration(200).attr('r', this.style.strokeWidth / 2 + 2).attr('fill', this.style.stroke).style('opacity', 1)
-          } else {
-            d3.select(e.target).attr('fill', 'none')
-          }
-        })
-        .on('mouseout', (e) => {
-          if (tool.value.includes('line') && !drawLine.value) {
-            d3.select(e.target).transition().duration(200).attr('r', this.style.strokeWidth / 2).style('opacity', 0)
-          }
-        })
-        .on('click', (e) => {
-          d3.selectAll('.extend-node').remove()
-          if (tool.value.includes('line') && !drawLine.value) {
-            drawLine.value = this
-            drawLine.value.addJointMode = index === 0 ? 'unshift' : 'push'
-            e.extend = true
-          }
-        })
-    }
+  addEndPointNode (joint, index) {
+    this.parent.parent.node.append('circle')
+      .attr('cx', joint.x).attr('cy', joint.y)
+      .attr('r', this.style.strokeWidth / 2)
+      .attr('fill', 'red')
+      .attr('id', `${this.id}_${index === 0 ? 'start' : 'end'}`)
+      .style('opacity', 0)
+      .on('mouseenter', (e) => {
+        
+        if (tool.value.includes('line') && !drawLine.value) {
+          d3.select(e.target).transition().duration(200).attr('r', this.style.strokeWidth / 2 + 2).attr('fill', this.style.stroke).style('opacity', 1)
+        } else {
+          d3.select(e.target).attr('fill', 'none')
+        }
+      })
+      .on('mouseout', (e) => {
+        if (tool.value.includes('line') && !drawLine.value) {
+          d3.select(e.target).transition().duration(200).attr('r', this.style.strokeWidth / 2).style('opacity', 0)
+        }
+      })
+      .on('click', (e) => {
+        if (tool.value.includes('line') && !drawLine.value) {
+          drawLine.value = this
+          drawLine.value.addJointMode = index === 0 ? 'unshift' : 'push'
+          e.extend = true
+        }
+      })
   }
 
   isCloseToEndPoint (pos) {
@@ -226,65 +246,51 @@ export default class Line {
     if (!readOnly && !this.style.isClosed) {
       this.parent.parent.node.select(`#${this.id}_start`).remove()
       this.parent.parent.node.select(`#${this.id}_end`).remove()
+      // if (tool.value.includes('line')) { // 绘制路径模式下添加首尾延伸感应点
+        // this.addEndPointNode(joints[0], 0)
+        // this.addEndPointNode(joints[joints.length - 1], joints.length - 1)
+      // }
     }
 
-    console.log(joints)
-
     let d = ''
-    const trueJoints = []
     joints.forEach((joint, index) => {
       if (index === 0) {
         d += `M${joint.x},${joint.y}`
-        trueJoints.push(joint)
       } else if (joint.type === 'round') {
-        trueJoints.push(joint)
+        // 如果是最后一个直接相连
+        if (index === joints.length - 1) {
+          d += `L${joint.x},${joint.y}`
+        } else {
+          d += getRoundCornerD(
+            joints[index - 1],
+            joint,
+            joints[index + 1],
+            joint.r,
+          )
+        }
       } else if (joint.type === 'from135') {
-        const { d, turnPoint } = get135ConnectionD(
+        d += get135ConnectionD(
           joints[index - 1],
           joint,
           joint.r,
           joint.flag,
         )
-        trueJoints.push(turnPoint)
-        trueJoints.push(joint)
-        // d += d
       } else if (joint.type === 'from90') {
-        const { d, turnPoint } = get90ConnectionD(
+        d += get90ConnectionD(
           joints[index - 1],
           joint,
           joint.r,
           joint.flag,
         )
-        trueJoints.push(turnPoint)
-        trueJoints.push(joint)
-        // d += d
       } else {
-        // d += `L${joint.x},${joint.y}`
-        trueJoints.push(joint)
+        d += `L${joint.x},${joint.y}`
       }
     })
-    console.log(trueJoints)
-    let trueD = ''
-    trueJoints.forEach((joint, index) => {
-      if (!joint) return
-      if (index === 0) {
-        trueD += `M${joint.x},${joint.y}`
-      } else if (index === trueJoints.length - 1 || joint?.relatedStationId) {
-        trueD += `L${joint.x},${joint.y}`
-      } else {
-        trueD += getRoundCornerD(
-          trueJoints[index - 1],
-          joint,
-          trueJoints[index + 1],
-          this.style.roundCornerRadius,
-        )
-      }
-    })
-    if (this.style.isClosed && !readOnly) trueD += 'Z'
+    if (this.style.isClosed) d += 'Z'
     if (!readOnly) {
-      this.d = trueD
-      this.basicPath.attr('d', trueD)
-      this.additionalPath.attr('d', trueD)
+      this.d = d
+      this.basicPath.attr('d', d)
+      this.additionalPath.attr('d', d)
 
       const pathLength = this.basicPath.node().getTotalLength()
 
@@ -301,12 +307,12 @@ export default class Line {
         this.previewNode = null
       }
     } else {
-      return trueD
+      return d
     }
   }
 
   addStationInLine (joint) {
-    const newStation = new Station(this.root.children['global_g'].children['draw_part'].children['global_station_g'], {
+    joint.relatedStation = new Station(this.root.children['global_g'].children['draw_part'].children['global_station_g'], {
       points: [
         {
           x: joint.x,
@@ -316,7 +322,6 @@ export default class Line {
       ],
       style: { stroke: this.style.stroke, }
     })
-    joint.relatedStationId = newStation.id
   }
 
   closeLine () {
@@ -333,7 +338,7 @@ export default class Line {
     const drawGNode = this.parent.parent.node
     const jointNode = drawGNode.append('circle')
       .attr('cx', joint.x).attr('cy', joint.y)
-      .attr('r', joint.relatedStationId ? 6 : this.style.strokeWidth)
+      .attr('r', joint.relatedStation ? 6 : this.style.strokeWidth)
       .attr('fill', this.style.stroke)
       .attr('class', 'selected_line_joint')
     
@@ -358,10 +363,9 @@ export default class Line {
     draggable(jointNode, (pos) => {
       joint.x = pos.x
       joint.y = pos.y
-      if (joint.relatedStationId) {
-        const station = this.root.stationMap[joint.relatedStationId]
-        station.modifyPoints({
-          key: 'relatedLineId',
+      if (joint.relatedStation) {
+        joint.relatedStation.modifyPoints({
+          key: 'relatedLine',
           value: this
         }, pos)
       }
@@ -441,6 +445,7 @@ export default class Line {
             ...joint,
             x: event.x,
             y: event.y,
+            relatedStation: null,
             relatedStationId: ''
           }, index)
           this.refreshSelect()
@@ -526,7 +531,6 @@ export default class Line {
   }
 
   addJoint (joint, index = null) {
-    console.log(`addJoint`, joint, index)
     if (index === null) {
       this.joints[this.addJointMode](joint)
     } else {
@@ -540,9 +544,8 @@ export default class Line {
     if (index !== -1) {
       this.joints.splice(index, 1)
       this.generateD(this.joints)
-      if (joint.relatedStationId) {
-        const station = this.root.stationMap[joint.relatedStationId]
-        station.removePoints({
+      if (joint.relatedStation) {
+        joint.relatedStation.removePoints({
           key: 'relatedLine',
           value: this
         })
@@ -551,14 +554,13 @@ export default class Line {
   }
 
   moveJoint (match, newPos, fromStation = false) {
-    const joint = this.joints.find(item => item[match.key] === match.value.id)
+    const joint = this.joints.find(item => item[match.key]?.id === match.value.id)
     if (joint) {
       joint.x = newPos.x
       joint.y = newPos.y
-      if (joint.relatedStationId && !fromStation) {
-        const station = this.root.stationMap[joint.relatedStationId]
-        station.modifyPoints({
-          key: 'relatedLineId',
+      if (joint.relatedStation && !fromStation) {
+        joint.relatedStation.modifyPoints({
+          key: 'relatedLine',
           value: this
         }, {
           x: newPos.x,
@@ -569,44 +571,30 @@ export default class Line {
     }
   }
 
-  delete (withTransition = false) {
+  delete () {
     if (selectedElement.value === this) {
       this.setSelect(false)
     }
-    if (withTransition) {
-      this.basicPath.transition().duration(500).style('opacity', 0).on('end', () => {
-        this.basicPath.remove()
-      })
-      this.additionalPath.transition().duration(500).attr('d', 'M0,0L0,0').on('end', () => {
-        this.additionalPath.remove()
-      })
-    } else {
-      this.basicPath.remove()
-      this.additionalPath.remove()
-    }
+    this.basicPath.remove()
+    this.additionalPath.remove()
 
     this.joints.forEach(joint => {
-      if (joint.relatedStationId) {
-        const station = this.root.stationMap[joint.relatedStationId]
-        if (station.points.length === 1) {
-          station.delete()
-        } else {
-          station.removePoints({
-            key: 'relatedLine',
-            value: this
-          })
-        }
+      if (joint.relatedStation) {
+        joint.relatedStation.removePoints({
+          key: 'relatedLine',
+          value: this
+        })
       }
     })
     delete this.parent.children[this.id]
   }
 
   get stations () {
-    return this.joints.filter(joint => joint.relatedStationId).map(joint => this.root.stationMap[joint.relatedStationId])
+    return this.joints.filter(joint => joint.relatedStation).map(joint => joint.relatedStation)
   }
 
   toStandard () {
-    const newJoints = this.joints.filter(joint => !!joint.relatedStationId).map(joint => ({
+    const newJoints = this.joints.filter(joint => !!joint.relatedStation).map(joint => ({
       ...joint,
       type: 'from135'
     }))

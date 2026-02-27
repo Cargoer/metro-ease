@@ -70,11 +70,9 @@ export const atomicIncreaseCount = async (tableName, buriedPointId, step = 1) =>
       }
     );
 
-    console.log(`记录 ${recordId} 的 count 已原子自增 ${step}`);
     return updateResponse.data;
 
   } catch (error) {
-    console.error('原子更新失败:', error.response?.data || error.message);
     throw error;
   }
 };

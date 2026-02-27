@@ -29,6 +29,14 @@
               @blur="refreshTarget"
             />
           </el-form-item>
+          <el-form-item label="车站名字体大小">
+            <el-input
+              v-model="props.station.nameFontSize"
+              type="number"
+              style="width: 150px;"
+              @blur="refreshTarget"
+            />
+          </el-form-item>
         </el-form>
       </el-tab-pane>
       <el-tab-pane label="路线站台" name="line" v-if="props.station.lines.length" class="station-tab">

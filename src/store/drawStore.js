@@ -10,6 +10,7 @@ import { id } from 'element-plus/es/locales.mjs'
 
 export const useDrawStore = defineStore('draw', () => {
   const tool = ref('select')
+  const extendMode = ref(false)
   const usedColors = ref([])
 
   const saveWithBgImage = ref(false)
@@ -23,7 +24,7 @@ export const useDrawStore = defineStore('draw', () => {
     type: '',
     url: '',
     style: 'mapbox://styles/cargoer/ckz6wrijt001n15os1cgx7ypp',
-    center: [113.9024, 22.5161],
+    center: [121.391, 31.2513],
     zoom: 12.59,
   })
   
@@ -37,7 +38,7 @@ export const useDrawStore = defineStore('draw', () => {
     dashArray: '20 20',
     innerStrokePercent: 0.8,
     isRoundCorner: true,
-    roundCornerRadius: 10,
+    roundCornerRadius: 30,
   })
 
   // 车站相关
@@ -77,6 +78,7 @@ export const useDrawStore = defineStore('draw', () => {
     stationSetting,
     textSetting,
     tool,
+    extendMode,
     usedColors,
     colorPicking,
     zoomInfo,

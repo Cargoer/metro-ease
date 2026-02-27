@@ -29,4 +29,9 @@ export const toolEnum = [
     value: 'station',
     svg: '<rect x="2" y="4" width="20" height="16" rx="8" ry=8 stroke="#fff" stroke-width="2" fill="none" />'
   },
+  {
+    label: '边界',
+    value: 'edge',
+    svg: '<text x="6" y="20" font-size="22" fill="#fff">E</text>'
+  },
 ]

@@ -52,7 +52,7 @@
       </div>
     </div>
 
-    <div class="group" v-if="tool.includes('line')">
+    <div class="group" v-if="tool.includes('line') || tool === 'edge'">
       <LineSetting :setting="lineSetting" />
     </div>
 

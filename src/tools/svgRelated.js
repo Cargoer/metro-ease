@@ -52,7 +52,10 @@ export function get135ConnectionD (point1, point2, r, leanFirst = true) {
     turnPoint.y = point2.y - l * yVector
   }
 
-  return `${getRoundCornerD(point1, turnPoint, point2, r)} L${point2.x},${point2.y}`
+  return {
+    d: `${getRoundCornerD(point1, turnPoint, point2, r)} L${point2.x},${point2.y}`,
+    turnPoint,
+  }
 }
 
 export function get90ConnectionD (point1, point2, r, yFirst = true) {
@@ -73,7 +76,10 @@ export function get90ConnectionD (point1, point2, r, yFirst = true) {
     turnPoint.y = point1.y
   }
 
-  return `${getRoundCornerD(point1, turnPoint, point2, r)} L${point2.x},${point2.y}`
+  return {
+    d: `${getRoundCornerD(point1, turnPoint, point2, r)} L${point2.x},${point2.y}`,
+    turnPoint,
+  }
 }
 
 export function generatePathD (joints) {
@@ -236,6 +242,64 @@ export function saveSvg(drawPartG, format = 'image/png', quality = 0.92) {
   };
   
   img.src = url;
+}
+
+export async function downloadSvgAsImage(svgElement, filename = 'image') {
+  // 1. 获取原始 SVG 的尺寸（假设已设置 width 和 height 属性）
+  const svgWidth = svgElement.getAttribute('width');
+  const svgHeight = svgElement.getAttribute('height');
+  
+  // 2. 创建带白色背景的外层 SVG 容器
+  const wrapperSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  wrapperSvg.setAttribute('width', svgWidth);
+  wrapperSvg.setAttribute('height', svgHeight);
+  wrapperSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  
+  // 添加白色背景矩形（铺满整个容器）
+  const background = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  background.setAttribute('width', '100%');
+  background.setAttribute('height', '100%');
+  background.setAttribute('fill', 'white'); // 白色背景
+  wrapperSvg.appendChild(background);
+  
+  // 3. 将原始 SVG 内容复制到容器中（确保层级在背景之上）
+  const clonedSvg = svgElement.cloneNode(true);
+  wrapperSvg.appendChild(clonedSvg);
+  
+  // 4. 将处理后的 SVG 转换为字符串
+  const serializer = new XMLSerializer();
+  const svgString = serializer.serializeToString(wrapperSvg);
+  const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+  const svgUrl = URL.createObjectURL(svgBlob);
+  
+  // 5. 将 SVG 转换为图片（如 PNG）并下载
+  const img = new Image();
+  img.onload = async () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = parseInt(svgWidth);
+    canvas.height = parseInt(svgHeight);
+    const ctx = canvas.getContext('2d');
+    
+    // 绘制白色背景（双重保障，避免 SVG 转换时背景丢失）
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // 绘制 SVG 内容
+    ctx.drawImage(img, 0, 0);
+    
+    // 触发下载
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${filename}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+    
+    URL.revokeObjectURL(svgUrl);
+  };
+  img.src = svgUrl;
 }
 
 export async function saveSvgWithBg(drawPartG, { bgType = 'none', bgUrl = '', watermarkText = '', imageName = '我的地铁图', format = 'image/png', quality = 0.95, watermarkPosition = 'bottom-left' }) {

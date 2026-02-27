@@ -375,7 +375,7 @@ export default {
               },
               {
                 "x": 2867,
-                "y": 3110,
+                "y": 3111,
                 "type": "round",
                 "flag": true,
                 "r": 30,
@@ -1126,33 +1126,6 @@ export default {
                 "r": "30",
                 "relatedStation": null,
                 "relatedStationId": "station_mg0cenuo_go543t"
-              },
-              {
-                "x": 3282,
-                "y": 3062,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": "station_mg0ceszo_lh0shk"
-              },
-              {
-                "x": 3208,
-                "y": 3081,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": "station_mhojr0er_svcxof"
-              },
-              {
-                "x": 3144,
-                "y": 3088,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": "station_mfzlk669_glpusk"
               }
             ],
             "style": {
@@ -1172,42 +1145,6 @@ export default {
             "id": "line_mfmipv1v_fmaymi",
             "name": "11号线",
             "joints": [
-              {
-                "x": 3116,
-                "y": 3127,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": "station_mg10o0yi_poo42l"
-              },
-              {
-                "x": 3067,
-                "y": 3131,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
-                "x": 3016,
-                "y": 3131,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
-                "x": 2993,
-                "y": 3136,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
               {
                 "x": 2959,
                 "y": 3136,
@@ -1362,8 +1299,8 @@ export default {
                 "relatedStationId": ""
               },
               {
-                "x": 1686,
-                "y": 3316,
+                "x": 1674,
+                "y": 3312,
                 "type": "round",
                 "flag": true,
                 "r": 30,
@@ -6291,24 +6228,6 @@ export default {
             "name": "2/8号线",
             "joints": [
               {
-                "x": 5337,
-                "y": 2442,
-                "type": "round",
-                "flag": true,
-                "r": 10,
-                "relatedStation": null,
-                "relatedStationId": "station_mhm999bn_xnli92"
-              },
-              {
-                "x": 5096,
-                "y": 2507,
-                "type": "round",
-                "flag": true,
-                "r": 10,
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
                 "x": 5046,
                 "y": 2529,
                 "type": "start",
@@ -6613,8 +6532,8 @@ export default {
                 "relatedStationId": "station_mg0cenuo_go543t"
               },
               {
-                "x": 3285,
-                "y": 3077,
+                "x": 3284,
+                "y": 3074,
                 "type": "round",
                 "flag": true,
                 "r": "30",
@@ -6622,8 +6541,8 @@ export default {
                 "relatedStationId": "station_mg0ceszo_lh0shk"
               },
               {
-                "x": 3177,
-                "y": 3098,
+                "x": 3168,
+                "y": 3095,
                 "type": "round",
                 "flag": true,
                 "r": "30",
@@ -9701,204 +9620,6 @@ export default {
                 "r": "30",
                 "relatedStation": null,
                 "relatedStationId": "station_mg117lax_y09uva"
-              },
-              {
-                "x": 1718,
-                "y": 2952,
-                "type": "round",
-                "flag": true,
-                "r": 10,
-                "relatedStation": null,
-                "relatedStationId": "station_mhoj9ynv_n2u7yl"
-              },
-              {
-                "x": 1718,
-                "y": 2882,
-                "type": "round",
-                "flag": true,
-                "r": 10,
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
-                "x": 1702,
-                "y": 2843,
-                "type": "round",
-                "flag": true,
-                "r": 10,
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
-                "x": 1702,
-                "y": 2821,
-                "type": "round",
-                "flag": true,
-                "r": 10,
-                "relatedStation": null,
-                "relatedStationId": "station_mhojawx6_x5ac0g"
-              },
-              {
-                "x": 1701,
-                "y": 2725,
-                "type": "round",
-                "flag": true,
-                "r": 10,
-                "relatedStation": null,
-                "relatedStationId": "station_mg0thy8u_qryq16"
-              },
-              {
-                "x": 1708,
-                "y": 2653,
-                "type": "round",
-                "flag": true,
-                "r": 10,
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
-                "x": 1720,
-                "y": 2603,
-                "type": "round",
-                "flag": true,
-                "r": 10,
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
-                "x": 1650,
-                "y": 2528,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
-                "x": 1642,
-                "y": 2498,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
-                "x": 1659,
-                "y": 2451,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
-                "x": 1666,
-                "y": 2364,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
-                "x": 1664,
-                "y": 2331,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": "station_mhojc5ly_wqgdje"
-              },
-              {
-                "x": 1656,
-                "y": 2284,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
-                "x": 1553,
-                "y": 2161,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
-                "x": 1552,
-                "y": 2124,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": "station_mhojd36q_4kquqb"
-              },
-              {
-                "x": 1555,
-                "y": 2037,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
-                "x": 1565,
-                "y": 1986,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
-                "x": 1613,
-                "y": 1896,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": "station_mhojdruf_z7s1nt"
-              },
-              {
-                "x": 1648,
-                "y": 1836,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
-                "x": 1652,
-                "y": 1785,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": "station_mhojejsg_4hua37"
-              },
-              {
-                "x": 1660,
-                "y": 1741,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": ""
-              },
-              {
-                "x": 1667,
-                "y": 1704,
-                "type": "round",
-                "flag": true,
-                "r": "30",
-                "relatedStation": null,
-                "relatedStationId": "station_mfmlclmg_l29gf5"
               }
             ],
             "style": {
@@ -10313,15 +10034,15 @@ export default {
             "name": "14号线",
             "joints": [
               {
-                "x": 2783,
-                "y": 3119,
+                "x": 2782,
+                "y": 3108,
                 "type": "start",
                 "relatedStation": null,
                 "relatedStationId": "station_mg0cgdip_szm71j"
               },
               {
-                "x": 2840,
-                "y": 3119,
+                "x": 2841,
+                "y": 3117,
                 "type": "round",
                 "flag": true,
                 "r": "30",
@@ -12881,12 +12602,6 @@ export default {
                 "y": 1704,
                 "relatedLine": null,
                 "relatedLineId": "line_mfmisvrg_bva2hq"
-              },
-              {
-                "x": 1667,
-                "y": 1704,
-                "relatedLine": null,
-                "relatedLineId": "line_mg116e18_jm6ea7"
               }
             ],
             "style": {
@@ -14348,8 +14063,8 @@ export default {
             "id": "station_mfzlk1ln_ffy6dr",
             "name": "科学馆",
             "namePos": {
-              "x": 2975,
-              "y": 3101
+              "x": 3031,
+              "y": 3141
             },
             "englishName": "engName",
             "points": [
@@ -14382,8 +14097,8 @@ export default {
             "id": "station_mfzlk669_glpusk",
             "name": "大剧院",
             "namePos": {
-              "x": 3115,
-              "y": 3073
+              "x": 3118,
+              "y": 3075
             },
             "englishName": "engName",
             "points": [
@@ -14398,12 +14113,6 @@ export default {
                 "y": 3097,
                 "relatedLine": null,
                 "relatedLineId": "line_mg0c9yfa_qzv8kb"
-              },
-              {
-                "x": 3144,
-                "y": 3088,
-                "relatedLine": null,
-                "relatedLineId": "line_mfmioa2e_0j3vnu"
               }
             ],
             "style": {
@@ -14420,7 +14129,7 @@ export default {
             "name": "老街",
             "namePos": {
               "x": 3196,
-              "y": 3051
+              "y": 3049
             },
             "englishName": "engName",
             "points": [
@@ -14450,8 +14159,8 @@ export default {
             "id": "station_mfzlkh13_ei9slp",
             "name": "国贸",
             "namePos": {
-              "x": 3187,
-              "y": 3129
+              "x": 3239,
+              "y": 3120
             },
             "englishName": "engName",
             "points": [
@@ -14500,7 +14209,7 @@ export default {
             "id": "station_mg0bqgrg_z6ac69",
             "name": "桂湾",
             "namePos": {
-              "x": 1238,
+              "x": 1250,
               "y": 3201
             },
             "englishName": "engName",
@@ -14687,8 +14396,8 @@ export default {
             "id": "station_mg0c9yfa_rgpkfm",
             "name": "小梅沙",
             "namePos": {
-              "x": 5056,
-              "y": 2546
+              "x": 5057,
+              "y": 2535
             },
             "englishName": "engName",
             "points": [
@@ -15043,22 +14752,16 @@ export default {
             "id": "station_mg0ceszo_lh0shk",
             "name": "湖贝",
             "namePos": {
-              "x": 3257,
-              "y": 3099
+              "x": 3273,
+              "y": 3062
             },
             "englishName": "engName",
             "points": [
               {
-                "x": 3285,
-                "y": 3077,
+                "x": 3284,
+                "y": 3074,
                 "relatedLine": null,
                 "relatedLineId": "line_mg0c9yfa_qzv8kb"
-              },
-              {
-                "x": 3282,
-                "y": 3062,
-                "relatedLine": null,
-                "relatedLineId": "line_mfmioa2e_0j3vnu"
               }
             ],
             "style": {
@@ -15154,8 +14857,8 @@ export default {
                 "relatedLineId": "line_mg1ua5q4_zps5y8"
               },
               {
-                "x": 2783,
-                "y": 3119,
+                "x": 2782,
+                "y": 3108,
                 "relatedLine": null,
                 "relatedLineId": "line_mg2ajo6m_mdq45i"
               }
@@ -15207,7 +14910,7 @@ export default {
             "name": "福田",
             "namePos": {
               "x": 2658,
-              "y": 3148
+              "y": 3135
             },
             "englishName": "engName",
             "points": [
@@ -15243,7 +14946,7 @@ export default {
             "id": "station_mg0ch2yi_sc02aq",
             "name": "莲花西",
             "namePos": {
-              "x": 2589,
+              "x": 2601,
               "y": 3038
             },
             "englishName": "engName",
@@ -15523,8 +15226,8 @@ export default {
                 "relatedLineId": "line_mg0c9yfa_qzv8kb"
               },
               {
-                "x": 1686,
-                "y": 3316,
+                "x": 1674,
+                "y": 3312,
                 "relatedLine": null,
                 "relatedLineId": "line_mfmipv1v_fmaymi"
               },
@@ -16939,8 +16642,8 @@ export default {
             "id": "station_mg0thy8u_qryq16",
             "name": "留仙洞",
             "namePos": {
-              "x": 1645,
-              "y": 2750
+              "x": 1675,
+              "y": 2752
             },
             "englishName": "engName",
             "points": [
@@ -16949,12 +16652,6 @@ export default {
                 "y": 2725,
                 "relatedLine": null,
                 "relatedLineId": "line_mfmioa2e_0j3vnu"
-              },
-              {
-                "x": 1701,
-                "y": 2725,
-                "relatedLine": null,
-                "relatedLineId": "line_mg116e18_jm6ea7"
               }
             ],
             "style": {
@@ -17438,8 +17135,8 @@ export default {
             "id": "station_mg0ty8wn_iuklo8",
             "name": "南山",
             "namePos": {
-              "x": 1488,
-              "y": 3245
+              "x": 1538,
+              "y": 3268
             },
             "englishName": "engName",
             "points": [
@@ -17977,8 +17674,8 @@ export default {
             "id": "station_mg0z597f_mjffjw",
             "name": "华强南",
             "namePos": {
-              "x": 2962,
-              "y": 3160
+              "x": 2970,
+              "y": 3149
             },
             "englishName": "engName",
             "points": [
@@ -18640,8 +18337,8 @@ export default {
             "id": "station_mg10o0yi_poo42l",
             "name": "红岭南",
             "namePos": {
-              "x": 3051,
-              "y": 3151
+              "x": 3114,
+              "y": 3126
             },
             "englishName": "engName",
             "points": [
@@ -18650,12 +18347,6 @@ export default {
                 "y": 3115,
                 "relatedLine": null,
                 "relatedLineId": "line_mg10gnrd_siwxig"
-              },
-              {
-                "x": 3116,
-                "y": 3127,
-                "relatedLine": null,
-                "relatedLineId": "line_mfmipv1v_fmaymi"
               }
             ],
             "style": {
@@ -18671,8 +18362,8 @@ export default {
             "id": "station_mg10o84n_1tadvc",
             "name": "鹿丹村",
             "namePos": {
-              "x": 3099,
-              "y": 3179
+              "x": 3117,
+              "y": 3182
             },
             "englishName": "engName",
             "points": [
@@ -18696,8 +18387,8 @@ export default {
             "id": "station_mg10oh9l_0kd77c",
             "name": "人民南",
             "namePos": {
-              "x": 3164,
-              "y": 3178
+              "x": 3174,
+              "y": 3143
             },
             "englishName": "engName",
             "points": [
@@ -18796,7 +18487,7 @@ export default {
             "id": "station_mg116qvx_vnxf7q",
             "name": "人才公园",
             "namePos": {
-              "x": 1705,
+              "x": 1704,
               "y": 3381
             },
             "englishName": "engName",
@@ -20343,206 +20034,6 @@ export default {
             ],
             "style": {
               "stroke": "rgb(24, 27, 165)",
-              "strokeWidth": 3,
-              "fill": "#FFFFFF",
-              "radius": 8,
-              "visibleWithTransition": false
-            },
-            "info": {}
-          },
-          "station_mhm999bn_xnli92": {
-            "id": "station_mhm999bn_xnli92",
-            "name": "溪涌",
-            "namePos": {
-              "x": 5344,
-              "y": 2466
-            },
-            "englishName": "engName",
-            "points": [
-              {
-                "x": 5337,
-                "y": 2442,
-                "relatedLine": null,
-                "relatedLineId": "line_mg0c9yfa_qzv8kb"
-              }
-            ],
-            "style": {
-              "stroke": "rgb(185, 88, 0)",
-              "strokeWidth": 3,
-              "fill": "#FFFFFF",
-              "radius": 8,
-              "visibleWithTransition": false
-            },
-            "info": {}
-          },
-          "station_mhoj9ynv_n2u7yl": {
-            "id": "station_mhoj9ynv_n2u7yl",
-            "name": "高新北",
-            "namePos": {
-              "x": 1730,
-              "y": 2959
-            },
-            "englishName": "engName",
-            "points": [
-              {
-                "x": 1718,
-                "y": 2952,
-                "relatedLine": null,
-                "relatedLineId": "line_mg116e18_jm6ea7"
-              }
-            ],
-            "style": {
-              "stroke": "rgb(218, 131, 10)",
-              "strokeWidth": 3,
-              "fill": "#FFFFFF",
-              "radius": 8,
-              "visibleWithTransition": false
-            },
-            "info": {}
-          },
-          "station_mhojawx6_x5ac0g": {
-            "id": "station_mhojawx6_x5ac0g",
-            "name": "石鼓",
-            "namePos": {
-              "x": 1715,
-              "y": 2829
-            },
-            "englishName": "engName",
-            "points": [
-              {
-                "x": 1702,
-                "y": 2821,
-                "relatedLine": null,
-                "relatedLineId": "line_mg116e18_jm6ea7"
-              }
-            ],
-            "style": {
-              "stroke": "rgb(218, 131, 10)",
-              "strokeWidth": 3,
-              "fill": "#FFFFFF",
-              "radius": 8,
-              "visibleWithTransition": false
-            },
-            "info": {}
-          },
-          "station_mhojc5ly_wqgdje": {
-            "id": "station_mhojc5ly_wqgdje",
-            "name": "百旺港大",
-            "namePos": {
-              "x": 1677,
-              "y": 2338
-            },
-            "englishName": "engName",
-            "points": [
-              {
-                "x": 1664,
-                "y": 2331,
-                "relatedLine": null,
-                "relatedLineId": "line_mg116e18_jm6ea7"
-              }
-            ],
-            "style": {
-              "stroke": "rgb(218, 131, 10)",
-              "strokeWidth": 3,
-              "fill": "#FFFFFF",
-              "radius": 8,
-              "visibleWithTransition": false
-            },
-            "info": {}
-          },
-          "station_mhojd36q_4kquqb": {
-            "id": "station_mhojd36q_4kquqb",
-            "name": "应人石",
-            "namePos": {
-              "x": 1565,
-              "y": 2132
-            },
-            "englishName": "engName",
-            "points": [
-              {
-                "x": 1552,
-                "y": 2124,
-                "relatedLine": null,
-                "relatedLineId": "line_mg116e18_jm6ea7"
-              }
-            ],
-            "style": {
-              "stroke": "rgb(218, 131, 10)",
-              "strokeWidth": 3,
-              "fill": "#FFFFFF",
-              "radius": 8,
-              "visibleWithTransition": false
-            },
-            "info": {}
-          },
-          "station_mhojdruf_z7s1nt": {
-            "id": "station_mhojdruf_z7s1nt",
-            "name": "罗租",
-            "namePos": {
-              "x": 1629,
-              "y": 1904
-            },
-            "englishName": "engName",
-            "points": [
-              {
-                "x": 1613,
-                "y": 1896,
-                "relatedLine": null,
-                "relatedLineId": "line_mg116e18_jm6ea7"
-              }
-            ],
-            "style": {
-              "stroke": "rgb(218, 131, 10)",
-              "strokeWidth": 3,
-              "fill": "#FFFFFF",
-              "radius": 8,
-              "visibleWithTransition": false
-            },
-            "info": {}
-          },
-          "station_mhojejsg_4hua37": {
-            "id": "station_mhojejsg_4hua37",
-            "name": "石岩",
-            "namePos": {
-              "x": 1665,
-              "y": 1799
-            },
-            "englishName": "engName",
-            "points": [
-              {
-                "x": 1652,
-                "y": 1785,
-                "relatedLine": null,
-                "relatedLineId": "line_mg116e18_jm6ea7"
-              }
-            ],
-            "style": {
-              "stroke": "rgb(218, 131, 10)",
-              "strokeWidth": 3,
-              "fill": "#FFFFFF",
-              "radius": 8,
-              "visibleWithTransition": false
-            },
-            "info": {}
-          },
-          "station_mhojr0er_svcxof": {
-            "id": "station_mhojr0er_svcxof",
-            "name": "东门",
-            "namePos": {
-              "x": 3172,
-              "y": 3102
-            },
-            "englishName": "engName",
-            "points": [
-              {
-                "x": 3208,
-                "y": 3081,
-                "relatedLine": null,
-                "relatedLineId": "line_mfmioa2e_0j3vnu"
-              }
-            ],
-            "style": {
-              "stroke": "rgb(158, 77, 170)",
               "strokeWidth": 3,
               "fill": "#FFFFFF",
               "radius": 8,

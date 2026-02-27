@@ -3,13 +3,7 @@ import * as d3 from "d3"
 // createBorderFilter
 import { 
   createBorderFilter, 
-  getRectByPoints, 
-  getRoundCornerD,
-  get135ConnectionD,
-  get90ConnectionD,
 } from '@/tools/svgRelated'
-import { messageBoxInput } from '@/tools/interact'
-import { reactive, readonly, ref } from "vue"
 import { draggable } from '@/tools/svgMover'
 import { generateUniqueId } from '@/tools/utils'
 // drawStore
@@ -43,6 +37,8 @@ export class Svg {
     this.basicCellSize = 10
     this.children = {}
     this.root = this
+    this.stationMap = {}
+    this.lineMap = {}
 
     this.bgSetting = {}
     this.canvas = null
@@ -71,6 +67,7 @@ export class Svg {
     new Group(globalG, { id: 'background' }) // 背景图层
     new Group(globalG, { id: 'grid' }) // 网格图层（参考，不导出）
     const drawPartG = new Group(globalG, { id: 'draw_part' }) // 绘制图层
+    new Group(drawPartG, { id: 'global_edge_g' }) // 绘制边界图层
     new Group(drawPartG, { id: 'global_line_g' }) // 绘制线路图层
     new Group(drawPartG, { id: 'global_station_g' }) // 绘制站点图层
     new Group(drawPartG, { id: 'global_text_g' }) // 绘制文本图层
@@ -158,6 +155,30 @@ export class Svg {
     this.setZoom()
   }
 
+  updateMapboxByD3 (event, duration = 0) {
+    if (!this.mapboxObj) return
+    // 同步平移
+    const { x, y, k } = event.transform;
+    const currentCenter = this.mapboxObj.getCenter()
+    const newCenterScreen = this.mapboxObj.project(currentCenter); // 缩放后当前中心点的屏幕坐标
+    const deltaX = x - this.formerZoomInfo.x
+    const deltaY = y - this.formerZoomInfo.y
+    const newCenterPxPos = new mapboxgl.Point(
+      newCenterScreen.x - deltaX,
+      newCenterScreen.y - deltaY
+    );
+    const newCenterLngLatPos = this.mapboxObj.unproject(newCenterPxPos);
+    // 同步缩放
+    const newScale = this.bgSetting.zoom + Math.log2(k)
+
+    this.mapboxObj.easeTo({
+      center: newCenterLngLatPos,
+      zoom: newScale, // 新缩放级别
+      duration: duration || 0, // 动画时长（毫秒）
+      easing: (t) => t // 缓动函数
+    });
+  }
+
   updateMapboxCenterByD3 (event) {
     if (!this.mapboxObj) return
 
@@ -176,7 +197,7 @@ export class Svg {
     this.mapboxObj.setCenter(newCenterLngLatPos);
   }
 
-  updateMapboxZoomByD3 (event) {
+  updateMapboxZoomByD3 (event, duration = 0) {
     if (!this.mapboxObj) return
 
     // 获取 D3 当前缩放状态
@@ -185,11 +206,14 @@ export class Svg {
     // 先记录正确缩放中心的屏幕坐标（以鼠标位置作为缩放中心）
     const x1 = event.sourceEvent.clientX
     const y1 = event.sourceEvent.clientY
-    console.log('x1, y1', x1, y1)
     const realCenterLatLng = this.mapboxObj.unproject(new mapboxgl.Point(x1, y1))
 
     // 同步缩放
-    this.mapboxObj.setZoom(this.bgSetting.zoom + Math.log2(k));
+    this.mapboxObj.setZoom(this.bgSetting.zoom + Math.log2(k), {
+      animate: duration > 0,
+      duration,
+      easing: mapboxgl.linear // 匀速缓动（等价于 d3.easeLinear）
+    });
     // 校正缩放中心
     const realCenterLatLng_px_afterZoom = this.mapboxObj.project(realCenterLatLng)
     const deltaX = realCenterLatLng_px_afterZoom.x - x1
@@ -201,25 +225,28 @@ export class Svg {
       newCenterScreen.y + deltaY
     );
     const adjustedCenter = this.mapboxObj.unproject(adjustedCenterScreen); // 转换为经纬度
-    this.mapboxObj.setCenter(adjustedCenter);
+    this.mapboxObj.setCenter(adjustedCenter, {
+      animate: duration > 0,
+      duration,
+      easing: mapboxgl.linear // 匀速缓动（等价于 d3.easeLinear）
+    });
   }
 
   // 设置平移缩放
-  setZoom (minScale = 0.1, maxScale = 5, filter) {
+  setZoom (minScale = 0.1, maxScale = 10, filter) {
     this.zoom = d3.zoom()
       .scaleExtent([minScale, maxScale])
       // .translateExtent([[0, 0], [canvasWidth / minScale, canvasHeight / minScale]]) // 防止超出边界
       .on('zoom', (event) => {
         zoomInfo.value = event.transform
-        console.log('event', event)
         this.children['global_g'].node.attr('transform', event.transform)
 
-        if (this.bgSetting.type === 'url') this.drawCanvasBg()
+        if (['url', 'local'].includes(this.bgSetting.type)) this.drawCanvasBg()
         if (this.mapboxObj) {
-          const action = event.sourceEvent.type || 'unknown'
-          console.log('action', action)
+          const action = event.sourceEvent?.type || 'unknown'
           if (action === 'wheel') this.updateMapboxZoomByD3(event)
           else this.updateMapboxCenterByD3(event)
+          // this.updateMapboxByD3(event)
         }
 
         this.formerZoomInfo.x = event.transform.x

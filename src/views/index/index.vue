@@ -39,7 +39,7 @@ const galleries = [
     title: '深圳地铁'
   },
   {
-    name: 'guangzhou',
+    name: 'guangzhouForD',
     title: '广州地铁'
   },
   {
@@ -49,7 +49,27 @@ const galleries = [
   {
     name: 'greatbay',
     title: '大湾区轨交'
-  }
+  },
+  {
+    name: '长三角',
+    title: '长三角'
+  },
+  {
+    name: 'fuzhou',
+    title: '福州地铁'
+  },
+  {
+    name: 'amoy',
+    title: '厦门地铁'
+  },
+  {
+    name: 'nanchang',
+    title: '南昌地铁'
+  },
+  {
+    name: 'lanzhou',
+    title: '兰州地铁'
+  },
 ]
 
 function jumpToCanvas(galleryName) {
@@ -100,7 +120,7 @@ function jumpToCanvas(galleryName) {
       }
       .gallery-list {
         display: flex;
-        max-width: 600px;
+        max-width: 1200px;
         flex-wrap: wrap;
         gap: 20px;
       }

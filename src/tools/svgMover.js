@@ -14,11 +14,17 @@ export function draggable(element, fn, setting = { initialPos: null, readOnly: f
     x: 0,
     y: 0,
   }
+  const dragStartPos = {
+    x: 0,
+    y: 0,
+  }
   element.call(d3.drag()
     .clickDistance(3) // 拖动距离太小视为点击事件
     .on('start', (e) => {
       dragStartOffset.x = Math.round(position.x - e.x)
       dragStartOffset.y = Math.round(position.y - e.y)
+      dragStartPos.x = Math.round(e.x)
+      dragStartPos.y = Math.round(e.y)
       element.style('cursor', 'move')
     })
     .on('drag', (e) => {
@@ -42,7 +48,11 @@ export function draggable(element, fn, setting = { initialPos: null, readOnly: f
       fn({
         x: newX,
         y: newY,
+        dx: dragPos.x - dragStartPos.x,
+        dy: dragPos.y - dragStartPos.y,
       })
+      dragStartPos.x = dragPos.x
+      dragStartPos.y = dragPos.y
     })
     .on('end', (e) => {
       element.style('cursor', 'default')

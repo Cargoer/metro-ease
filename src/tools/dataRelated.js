@@ -76,7 +76,7 @@ function addInstance (parentNode, instance) {
   if (!instance.children) {
     if (instance.id.includes('station')) {
       return new Station(parentNode, instance)
-    } else if (instance.id.includes('line')) {
+    } else if (instance.id.includes('line') || instance.id.includes('edge')) {
       return new Line(parentNode, instance)
     } else if (instance.id.includes('text')) {
       return new Text(parentNode, instance)

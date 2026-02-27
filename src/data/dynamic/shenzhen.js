@@ -95,6 +95,11 @@ export default [
     description: '3号线二期（草埔-益田）开通运营'
   },
   {
+    type: 'showAll',
+    date: '2014-12-28',
+    description: '10周年展示'
+  },
+  {
     type: 'line',
     name: '11号线',
     section: ['福田', '碧头'],
@@ -130,6 +135,11 @@ export default [
     description: '9号线二期（红树湾南-前湾）开通运营'
   },
   {
+    type: 'showAll',
+    date: '2019-12-28',
+    description: '15周年展示'
+  },
+  {
     type: 'line',
     name: '6号线',
     section: ['科学馆', '松岗'],
@@ -146,9 +156,16 @@ export default [
   {
     type: 'line',
     name: '2/8号线',
-    section: ['新秀', '盐田路'],
+    section: ['新秀', '莲塘'],
     date: '2020-10-28',
-    description: '2号线三期（新秀-莲塘）[贯通] 8号线一期（莲塘-盐田路）开通运营'
+    description: '2号线三期（新秀-莲塘）'
+  },
+  {
+    type: 'line',
+    name: '2/8号线',
+    section: ['莲塘', '盐田路'],
+    date: '2020-10-28',
+    description: '8号线一期（莲塘-盐田路）开通运营 [与2号线贯通]'
   },
   {
     type: 'line',
@@ -249,6 +266,11 @@ export default [
     description: '13号线一期南段（深圳湾口岸-高新中）开通运营'
   },
   {
+    type: 'showAll',
+    date: '2024-12-28',
+    description: '20周年展示'
+  },
+  {
     type: 'line',
     name: '6号线支线',
     section: ['光明', '光明城'],
@@ -262,4 +284,42 @@ export default [
     date: '2025-09-28',
     description: '16号线二期（大运-园山西坑）开通运营'
   },
+  {
+    type: 'showAll',
+    date: '2025-09-28',
+    description: '现状'
+  },
+  {
+    type: 'line',
+    name: '5号线',
+    section: ['黄贝岭', '大剧院'],
+    date: '2025-12-28',
+    description: '5号线西延（黄贝岭-大剧院）开通运营'
+  },
+  {
+    type: 'line',
+    name: '2/8号线',
+    section: ['小梅沙', '溪涌'],
+    date: '2025-12-28',
+    description: '8号线三期（小梅沙-溪涌）开通运营'
+  },
+  {
+    type: 'line',
+    name: '11号线',
+    section: ['华强南', '红岭南'],
+    date: '2025-12-28',
+    description: '11号线二期（华强南-红岭南）开通运营'
+  },
+  {
+    type: 'line',
+    name: '13号线',
+    section: ['高新中', '上屋'],
+    date: '2025-12-28',
+    description: '13号线一期北段（高新中-上屋）开通运营'
+  },
+  {
+    type: 'showAll',
+    date: '2025-12-28',
+    description: '2025年底开通情况'
+  }
 ]
