@@ -31,26 +31,32 @@ export function getRoundCornerD (point1, pointC, point2, r) {
 }
 
 export function get135ConnectionD (point1, point2, r, leanFirst = true) {
-  const width = Math.abs(point2.x - point1.x)
-  const height = Math.abs(point2.y - point1.y)
-
-  if (width === 0 || height === 0 || width === height) { // 不需要拐点
-    return `L${point2.x},${point2.y}`
-  }
-
-  const xVector = (point2.x - point1.x) / Math.abs(point2.x - point1.x)
-  const yVector = (point2.y - point1.y) / Math.abs(point2.y - point1.y)
-
   const turnPoint = {}
 
-  const l = Math.min(width, height)
-  if (leanFirst) {
-    turnPoint.x = point1.x + l * xVector
-    turnPoint.y = point1.y + l * yVector
-  } else {
-    turnPoint.x = point2.x - l * xVector
-    turnPoint.y = point2.y - l * yVector
+  try {
+    const width = Math.abs(point2.x - point1.x)
+    const height = Math.abs(point2.y - point1.y)
+
+    if (width === 0 || height === 0 || width === height) { // 不需要拐点
+      return `L${point2.x},${point2.y}`
+    }
+
+    const xVector = (point2.x - point1.x) / Math.abs(point2.x - point1.x)
+    const yVector = (point2.y - point1.y) / Math.abs(point2.y - point1.y)
+    
+
+    const l = Math.min(width, height)
+    if (leanFirst) {
+      turnPoint.x = point1.x + l * xVector
+      turnPoint.y = point1.y + l * yVector
+    } else {
+      turnPoint.x = point2.x - l * xVector
+      turnPoint.y = point2.y - l * yVector
+    }
+  } catch (error) {
+    console.log('get135ConnectionD error:', error)
   }
+  
 
   return {
     d: `${getRoundCornerD(point1, turnPoint, point2, r)} L${point2.x},${point2.y}`,
@@ -302,10 +308,22 @@ export async function downloadSvgAsImage(svgElement, filename = 'image') {
   img.src = svgUrl;
 }
 
-export async function saveSvgWithBg(drawPartG, { bgType = 'none', bgUrl = '', watermarkText = '', imageName = '我的地铁图', format = 'image/png', quality = 0.95, watermarkPosition = 'bottom-left' }) {
+export async function saveSvgWithBg(
+  drawPartG, 
+  { 
+    bgType = 'none', 
+    bgUrl = '', 
+    watermarkText = '', 
+    imageName = '我的地铁图', 
+    format = 'image/png', 
+    quality = 0.95, 
+    watermarkPosition = 'bottom-left', 
+    padding = 100,
+    canvasEdge = null 
+  }
+) {
   // 获取元素的边界框，确定需要保存的区域
-  const { x, y, width, height } = drawPartG.node().getBBox();
-  const padding = 100;
+  const { x, y, width, height } = canvasEdge ? canvasEdge.node.node().getBBox() : drawPartG.node().getBBox();
   
   // 创建新的SVG元素
   const svgToSave = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -354,6 +372,27 @@ export async function saveSvgWithBg(drawPartG, { bgType = 'none', bgUrl = '', wa
   
   // 克隆目标元素并处理其中的image标签
   const clonedElement = drawPartG.node().cloneNode(true);
+
+  console.log('canvasEdge', canvasEdge)
+
+  if (canvasEdge) {
+    // SVG 命名空间
+    const svgNS = "http://www.w3.org/2000/svg";
+
+    // const canvasEdgeBBox = canvasEdge.node.node().getBBox();
+    // svgToSave.setAttribute('viewBox', `${canvasEdgeBBox.x - padding} ${canvasEdgeBBox.y - padding} ${canvasEdgeBBox.width + padding * 2} ${canvasEdgeBBox.height + padding * 2}`);
+
+    // 3. 创建裁剪路径
+    const defs = document.createElementNS(svgNS, "defs");
+    const clipPath = document.createElementNS(svgNS, "clipPath");
+    clipPath.id = canvasEdge.id;
+
+    clipPath.appendChild(canvasEdge.node.node().cloneNode(true));
+    defs.appendChild(clipPath);
+    svgToSave.appendChild(defs);
+
+    clonedElement.setAttribute("clip-path", `url(#${canvasEdge.id})`);
+  }
 
   svgToSave.appendChild(clonedElement);
 

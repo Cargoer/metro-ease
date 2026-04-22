@@ -39,9 +39,8 @@ const keepAliveComponents = computed(() => {
       <component :is="Component" />
     </keep-alive>
     <div class="fr about">
-      <div class="about-item" @click="fastVisible = true" v-if="router.currentRoute.value.name === 'draw'">快捷键</div>
-      <div class="about-item" v-click-counter="'CLICK_REWARD'" @click="encourageDialogVisible = true">鼓励作者</div>
-      <div class="about-item" v-click-counter="'CLICK_CONTACT'" @click="contactDialogVisible = true">联系作者</div>
+      <div class="about-item" @click="encourageDialogVisible = true">鼓励作者</div>
+      <div class="about-item" @click="contactDialogVisible = true">联系作者</div>
     </div>
     <Dialog
       v-model:visible="encourageDialogVisible"
@@ -71,24 +70,7 @@ const keepAliveComponents = computed(() => {
         <span>邮箱: 2245990708@qq.com</span>
       </div>
     </Dialog>
-    <Dialog
-      v-model:visible="fastVisible"
-      :with-button="false"
-      title="快捷键👇"
-      width="500"
-    >
-      <div class="fc" style="align-items: flex-start;">
-        <h2>全局模式下</h2>
-        <p>空格键+鼠标移动: 拖动画布</p>
-        <p>1-6: 分别对应工具栏的6种工具</p>
-        <h2>路径模式下</h2>
-        <p>Enter: 结束路径绘制</p>
-        <p>s: 同时绘制站点</p>
-        <h2>其他</h2>
-        <p>选中路径后可调整对应节点，也可以右击路径进行操作</p>
-        <p>双击文本可编辑</p>
-      </div>
-    </Dialog>
+    
   </router-view>
 </template>
 

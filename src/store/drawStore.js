@@ -11,6 +11,7 @@ import { id } from 'element-plus/es/locales.mjs'
 export const useDrawStore = defineStore('draw', () => {
   const tool = ref('select')
   const extendMode = ref(false)
+  const drawRect = ref(null)
   const usedColors = ref([])
 
   const saveWithBgImage = ref(false)
@@ -86,6 +87,7 @@ export const useDrawStore = defineStore('draw', () => {
     mousePosition,
     pressedKeys,
     saveWithBgImage,
+    drawRect,
 
     bgType,
     mapboxSetting,

@@ -1,46 +1,25 @@
 <template>
   <div class="draw-tool-container">
-    <div class="group">
-      <el-button type="primary" @click="importBgDialogVisible = true">导入底图</el-button>
-      <el-button type="primary" @click="emits('clearCanvas')">清除画布</el-button>
+    <Menu :menuItems="menuItems" />
 
-      <el-button type="primary" class="icon-select" @click="emits('saveSvg')" title="保存为图片">
-        <svg viewBox="0 0 24 24" :width="24" :height="24">
-          <path d="M5,3 L14,3 L19,8 L19,21 L5,21 Z" fill="none" stroke="#fff" stroke-width="2" />
-          <path d="M9,21 L9,13 L15,13 L15,21" fill="none" stroke="#fff" stroke-width="2" />
-        </svg>
-      </el-button>
-      <el-button type="primary" class="icon-select" @click="emits('exportSvg')" title="导出项目">
-        <svg viewBox="0 0 24 24" :width="24" :height="24">
-          <path d="M9,2 L2,2 L2,22 L22,22 L22,15" fill="none" stroke="#fff" stroke-width="2" />
-          <path d="M15,2 L22,2 L22,9" fill="none" stroke="#fff" stroke-width="2" />
-          <path d="M9,15 L22,2" fill="none" stroke="#fff" stroke-width="2" />
-        </svg>
-      </el-button>
-      
-      <el-upload
-        ref="bgImageUpload"
-        accept=".json"
-        :show-file-list="false"
-        :on-success="handleJsonImport"
-        :on-error="handleJsonImportError"
-        :on-change="handleJsonChange"
-        action="#"
-        :auto-upload="false"
-      >
-        <template #trigger>
-          <el-button type="primary" class="icon-select" title="导入项目">
-            <svg viewBox="0 0 24 24" :width="24" :height="24">
-              <path d="M9,2 L2,2 L2,22 L22,22 L22,15" fill="none" stroke="#fff" stroke-width="2" />
-              <path d="M9,7 L9,15 L17,15" fill="none" stroke="#fff" stroke-width="2" />
-              <path d="M9,15 L22,2" fill="none" stroke="#fff" stroke-width="2" />
-            </svg>
-          </el-button>
-        </template>
-      </el-upload>
-    </div>
+    <el-upload
+      ref="projectUpload"
+      accept=".json"
+      :show-file-list="false"
+      :on-success="handleJsonImport"
+      :on-error="handleJsonImportError"
+      :on-change="handleJsonChange"
+      action="#"
+      :auto-upload="false"
+    >
+      <template #trigger>
+        <button ref="projectUploadBtn" type="primary" class="icon-select" title="导入项目" style="display: none;">
+          导入项目
+        </button>
+      </template>
+    </el-upload>
     
-    <div class="group">
+    <div class="group" v-if="!drawRect">
       <div
         v-for="item in toolEnum" :key="item.value" class="icon-select"
         :title="item.label"
@@ -52,11 +31,11 @@
       </div>
     </div>
 
-    <div class="group" v-if="tool.includes('line') || tool === 'edge'">
+    <div class="group" v-if="(tool.includes('line') || tool === 'edge') && !drawRect">
       <LineSetting :setting="lineSetting" />
     </div>
 
-    <div class="group" v-else-if="tool === 'station'">
+    <div class="group" v-else-if="tool === 'station' && !drawRect">
       <StationSetting />
     </div>
 
@@ -114,11 +93,30 @@
         </template>
       </el-form>
     </Dialog>
+
+    <Dialog
+      v-model:visible="helpVisible"
+      :with-button="false"
+      title="快捷键👇"
+      width="500"
+    >
+      <div class="fc" style="align-items: flex-start;">
+        <h2>全局模式下</h2>
+        <p>空格键+鼠标移动: 拖动画布</p>
+        <p>1-6: 分别对应工具栏的6种工具</p>
+        <h2>路径模式下</h2>
+        <p>Enter: 结束路径绘制</p>
+        <p>s: 同时绘制站点</p>
+        <h2>其他</h2>
+        <p>选中路径后可调整对应节点，也可以右击路径进行操作</p>
+        <p>双击文本可编辑</p>
+      </div>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import { getRoundCornerD } from '@/tools/svgRelated'
 import { toolEnum } from '@/data/toolEnum'
 import ColorPickerWithPreset from '@/components/ColorPickerWithPreset.vue'
@@ -127,11 +125,89 @@ import StationSetting from '@/components/StationSetting.vue'
 import TextSetting from '@/components/TextSetting.vue'
 import Dialog from '@/components/Dialog.vue'
 
+import Menu from '@/ui/Menu.vue'
+
+const projectUploadBtn = ref(null)
+const helpVisible = ref(false)
+
+
+
 // 绘图相关的全局变量
 import { useDrawStore } from '@/store/drawStore.js'
 import { storeToRefs } from 'pinia'
 const drawStore = useDrawStore()
-const { tool, lineSetting, stationSetting, textSetting, bgType, mapboxSetting, bgSetting } = storeToRefs(drawStore)
+const { tool, lineSetting, stationSetting, textSetting, bgType, mapboxSetting, bgSetting, drawRect } = storeToRefs(drawStore)
+
+const menuItems = reactive([
+  {
+    text: '项目',
+    showSubItems: false,
+    func: (item) => {
+      console.log(item)
+      item.showSubItems = !item.showSubItems
+    },
+    subItems: [
+      {
+        text: '导入项目',
+        func: () => {
+          // 点击上传按钮
+          projectUploadBtn.value.click()
+        }
+      },
+      {
+        text: '导出项目',
+        func: () => {
+          emits('exportSvg')
+        }
+      },
+      {
+        text: '保存为图片',
+        func: () => {
+          emits('saveSvg')
+        }
+      }
+    ]
+  },
+  {
+    text: '导入底图',
+    func: () => {
+      importBgDialogVisible.value = true
+    }
+  },
+  {
+    text: '画布',
+    showSubItems: false,
+    func: (item) => {
+      item.showSubItems = !item.showSubItems
+    },
+    subItems: [
+      {
+        text: '添加画布',
+        func: () => {
+          drawRect.value = true
+        }
+      },
+      {
+        text: '管理画布',
+        func: () => {
+          emits('canvasManage')
+        }
+      },
+      {
+        text: '清除所有元素',
+        func: () => {
+          emits('clearCanvas')
+        }
+      }
+    ]
+  },
+  {
+    text: '帮助',
+    func: () => {
+      helpVisible.value = true
+    }
+  }
+])
 
 const importBgDialogVisible = ref(false)
 
@@ -141,6 +217,7 @@ const emits = defineEmits([
   'exportSvg',
   'importJson',
   'clearCanvas',
+  'canvasManage',
 ])
 
 function updateTool (toolValue) {

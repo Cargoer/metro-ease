@@ -71,6 +71,11 @@ export class Svg {
     new Group(drawPartG, { id: 'global_line_g' }) // 绘制线路图层
     new Group(drawPartG, { id: 'global_station_g' }) // 绘制站点图层
     new Group(drawPartG, { id: 'global_text_g' }) // 绘制文本图层
+    new Group(globalG, { id: 'global_rect_g' }) // 绘制矩形图层
+  }
+
+  get canvasList () {
+    return Object.values(this.children['global_g'].children['global_rect_g'].children)
   }
 
   modifyZoom (scale = 1, x = 0, y = 0) {
@@ -292,8 +297,16 @@ export class Svg {
       const pos = this.transformCoords(x, y)
       funcObj.mousemove(e, pos)
     })
-    this.node.on('mousedown', funcObj.mousedown)
-    this.node.on('mouseup', funcObj.mouseup)
+    this.node.on('mousedown', (e) => {
+      const [x, y] = d3.pointer(e, this.node.node());
+      const pos = this.transformCoords(x, y)
+      funcObj.mousedown(e, pos)
+    })
+    this.node.on('mouseup', (e) => {
+      const [x, y] = d3.pointer(e, this.node.node());
+      const pos = this.transformCoords(x, y)
+      funcObj.mouseup(e, pos)
+    })
   }
 
   loadBackground (bgSetting) {
@@ -411,7 +424,7 @@ export class Text {
       withBg: settings.style.withBg,
       withBorder: settings.style.withBorder,
       borderColor: settings.style.borderColor,
-      padding: settings.style.padding,
+      padding: settings.style.padding || '10 8',
       borderRadius: settings.style.borderRadius,
     }
     

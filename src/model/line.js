@@ -228,7 +228,6 @@ export default class Line {
       this.parent.parent.node.select(`#${this.id}_end`).remove()
     }
 
-    console.log(joints)
 
     let d = ''
     const trueJoints = []
@@ -245,7 +244,7 @@ export default class Line {
           joint.r,
           joint.flag,
         )
-        trueJoints.push(turnPoint)
+        if (turnPoint) trueJoints.push(turnPoint)
         trueJoints.push(joint)
         // d += d
       } else if (joint.type === 'from90') {
@@ -255,7 +254,7 @@ export default class Line {
           joint.r,
           joint.flag,
         )
-        trueJoints.push(turnPoint)
+        if (turnPoint) trueJoints.push(turnPoint)
         trueJoints.push(joint)
         // d += d
       } else {
@@ -311,7 +310,7 @@ export default class Line {
         {
           x: joint.x,
           y: joint.y,
-          relatedLine: this,
+          relatedLineId: this.id,
         }
       ],
       style: { stroke: this.style.stroke, }

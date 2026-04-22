@@ -92,6 +92,7 @@ const refreshTarget = () => {
 }
 
 onMounted(() => {
+  if (!props.station.info) props.station.info = {}
   for (const line of props.station.lines) {
     if (!props.station.info[line.id]) {
       props.station.info[line.id] = {}

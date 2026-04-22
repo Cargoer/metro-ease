@@ -8,22 +8,8 @@
       @exportSvg="handleExportSvg"
       @importJson="handleImportJson($event)"
       @clearCanvas="clearCanvas"
+      @canvasManage="canvasManageVisible = true"
     />
-    <!-- <div class="fc filter-container">
-      <div class="fr filter-item">
-        <span>只保留:</span>
-        <el-input v-model="keepOnly" placeholder="输入元素类型，多个类型用逗号分隔" style="width: 200px;" />
-        <el-button type="primary" @click="filterElements">确认</el-button>
-      </div>
-      <div class="fr filter-item">
-        <span>只显示区域:</span>
-        <el-select v-model="selectEdge" placeholder="选择区域" style="width: 150px;" @focus="updateEdgeList" @change="createAndApplyClipPath">
-          <el-option v-for="edge in edgeList" :key="edge.id" :label="edge.name" :value="edge.name" />
-        </el-select>
-        <el-button type="primary" @click="createAndApplyClipPath">确认</el-button>
-        <el-button type="primary" @click="cancelClipPath">还原</el-button>
-      </div>
-    </div> -->
     
     <!-- 画布逻辑 -->
     <div id="draw-container">
@@ -60,6 +46,15 @@
               <el-option label="使用底图" value="bgImg" v-if="svg && svg.bgSetting.type === 'local'" />
             </el-select>
           </el-form-item>
+          <el-form-item label="使用画布" prop="canvasEdge">
+            <el-select v-model="canvasEdgeId" placeholder="请选择画布边缘" style="width: 200px;">
+              <el-option label="不使用" value="no" />
+              <el-option v-for="(canvas) in svg.canvasList" :key="canvas.id" :label="canvas.name" :value="canvas.id" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="图片内边距" prop="padding">
+            <el-input v-model="saveSetting.padding" placeholder="请输入图片内边距" style="width: 200px;" />
+          </el-form-item>
           <el-form-item label="水印文字">
             <el-input v-model="saveSetting.watermarkText" placeholder="需要的话请输入水印文字" style="width: 200px;" />
           </el-form-item>
@@ -72,6 +67,25 @@
             </el-select>
           </el-form-item>
         </el-form>
+      </div>
+    </Dialog>
+
+    <Dialog
+      v-model:visible="canvasManageVisible"
+      title="画布管理"
+      width="500"
+      :withButton="false"
+    >
+      <div class="fc" style="align-items: center; gap: 15px;">
+        <div v-if="svg.canvasList.length === 0">
+          <el-empty description="暂无画布" />
+        </div>
+        <div v-for="canvas in svg.canvasList" :key="canvas.id" class="fr" style="align-items: center; gap: 15px;">
+          <el-input v-model="canvas.name" placeholder="请输入画布名称" style="width: 200px;" />
+          <el-checkbox v-model="canvas.visible" label="可见" size="large" @change="(val) => canvas.setVisible(val)" />
+          <el-checkbox v-model="canvas.locked" label="锁定" size="large" @change="(val) => canvas.setLocked(val)" />
+          <el-button type="danger" size="small" @click="canvas.delete()">删除</el-button>
+        </div>
       </div>
     </Dialog>
   </div>
@@ -115,6 +129,7 @@ import {
 import { Svg, Text } from '@/model/element.js'
 import Station from '@/model/station.js'
 import Line from '@/model/line.js'
+import Rect from '@/model/rect.js'
 
 // 绘图相关的全局变量
 import { useDrawStore } from '@/store/drawStore.js'
@@ -132,7 +147,8 @@ const {
   selectedElement,
   zoomInfo,
   saveWithBgImage,
-  extendMode
+  extendMode,
+  drawRect
 } = storeToRefs(drawStore)
 
 // 同时监听extendMode和drawLine，当extendMode为true且drawLine为null时，设置所有线的延伸节点
@@ -169,6 +185,7 @@ function handleDynamicClick () {
 
 const elementDetailPanelVisible = ref(false)
 const saveDialogVisible = ref(false)
+const canvasManageVisible = ref(false)
 const imageName = ref('')
 
 watch(() => selectedElement.value, (newVal) => {
@@ -201,12 +218,15 @@ function handleUploadBackground (url) {
   svg.loadBackground(url)
 }
 
+const canvasEdgeId = ref('no')
 const saveSetting = reactive({
   imageName: '',
   watermarkText: '',
   watermarkPosition: 'bottom-left',
   bgType: 'white',
-  bgUrl: ''
+  bgUrl: '',
+  padding: 100,
+  canvasEdge: null,
 })
 function handleSaveSvgWithBg () {
   if (!saveSetting.imageName) {
@@ -216,6 +236,11 @@ function handleSaveSvgWithBg () {
   if (saveSetting.bgType === 'bgImg') {
     saveSetting.bgUrl = svg.bgSetting.url
   }
+  if (canvasEdgeId.value !== 'no') {
+    saveSetting.canvasEdge = svg.canvasList.find(canvas => canvas.id === canvasEdgeId.value)
+  } else {
+    saveSetting.canvasEdge = null
+  }
   const drawPartG = svg.children['global_g'].children['draw_part'].node
   saveSvgWithBg(drawPartG, saveSetting)
   // downloadSvgAsImage(svg.node.node())
@@ -224,6 +249,10 @@ function handleSaveSvgWithBg () {
 const mapType = { 'line135': 'from135', 'line90': 'from90' }
 function handleSvgClick (event, pos) {
   if (colorPicking.value) {
+    return
+  }
+
+  if (drawRect.value) {
     return
   }
 
@@ -465,12 +494,47 @@ function handleZoomIn () {
 
 let svg = null
 let name = ''
+let drawingRect = ref(null)
 onMounted(async () => {  
   svg = reactive(new Svg('svg-container'))
   svg.addEventListeners({
     click: handleSvgClick,
     mousemove: (event, pos) => {
       mousePosition.value = pos
+      if (drawingRect.value) {
+        drawingRect.value.setEndPoint(pos)
+      }
+    },
+    mousedown: (event, pos) => {
+      console.log(drawRect.value)
+      if (drawRect.value) {
+        drawingRect.value = new Rect(svg.children['global_g'].children['global_rect_g'], pos)
+        return
+      }
+    },
+    mouseup: (event, pos) => {
+      if (drawingRect.value) {
+        drawingRect.value.setCornerEditable(true)
+        ElMessageBox.prompt('', '输入画布名称', {
+          confirmButtonText: '确认',
+          cancelButtonText: '取消',
+          inputValue: drawingRect.value.name,
+          // 通过正则校验输入内容不为空
+          inputPattern: /\S+/,
+          inputErrorMessage: '请输入画布名称',
+        })
+          .then(({ value }) => {
+            // 创建下载链接
+            drawingRect.value.name = value
+          })
+          .catch((e) => {
+            console.log('取消输入', e)
+          })
+          .finally(() => {
+            drawingRect.value = null
+            drawRect.value = false
+          })
+      }
     },
   })
 
