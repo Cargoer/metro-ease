@@ -10,9 +10,9 @@ import { id } from 'element-plus/es/locales.mjs'
 
 export const useDrawStore = defineStore('draw', () => {
   const tool = ref('select')
-  const extendMode = ref(false)
   const drawRect = ref(null)
   const usedColors = ref([])
+  const svg = ref(null)
 
   const saveWithBgImage = ref(false)
   const bgType = ref('')
@@ -32,13 +32,14 @@ export const useDrawStore = defineStore('draw', () => {
   // 路径相关
   const drawLine = ref(null)
   const lineSetting = ref({
+    isExtendMode: false,
+    usage: 'line',
     strokeWidth: 10,
     stroke: '#000000',
     fill: 'none',
     pattern: 'default',
     dashArray: '20 20',
     innerStrokePercent: 0.8,
-    isRoundCorner: true,
     roundCornerRadius: 30,
   })
 
@@ -48,6 +49,19 @@ export const useDrawStore = defineStore('draw', () => {
     stroke: '#000000',
     strokeWidth: 3,
     radius: 8,
+  })
+
+  const stationUnitedStyle = ref({
+    presetLineStrokeWidth: 10,
+    strokeWidth: 2,
+    strokeType: 'followLine',
+    stroke: '#FFF',
+    fillType: 'fixed',
+    fill: '#FFF',
+    radiusType: 'fixed',
+    radius: 8,
+    radiusPercent: 0.8,
+    fontSize: 12,
   })
 
   // 文本相关
@@ -71,6 +85,10 @@ export const useDrawStore = defineStore('draw', () => {
   const pressedKeys = ref({})
   const mousePosition = ref({ x: -1, y: -1 }) // 鼠标移动事件中，鼠标的实时位置
   const zoomInfo = ref({ k: 1, x: 0, y: 0 })
+
+  function initSvg(val) {
+    svg.value = val
+  }
   
   return {
     // toolSetting,
@@ -79,7 +97,6 @@ export const useDrawStore = defineStore('draw', () => {
     stationSetting,
     textSetting,
     tool,
-    extendMode,
     usedColors,
     colorPicking,
     zoomInfo,
@@ -92,5 +109,8 @@ export const useDrawStore = defineStore('draw', () => {
     bgType,
     mapboxSetting,
     bgSetting,
+    svg,
+    initSvg,
+    stationUnitedStyle,
   }
 })

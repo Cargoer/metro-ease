@@ -1,38 +1,31 @@
 <template>
   <div class="line-setting fr">
     <ColorPickerWithPreset v-model:color="stationSetting.stroke" title="边框颜色">
-      <svg viewBox="0 0 10 10" :width="10" :height="10">
-        <path d="M2,2 L2,8 L8,8 L8,2 Z" :stroke="stationSetting.stroke" stroke-width="2" fill="none" />
-      </svg>
+      <span>边</span>
     </ColorPickerWithPreset>
 
     <ColorPickerWithPreset v-model:color="stationSetting.fill" title="填充颜色">
-      <svg viewBox="0 0 10 10" :width="10" :height="10">
-        <path d="M2,2 L2,8 L8,8 L8,2 Z" stroke="none" stroke-width="2" :fill="stationSetting.fill" />
-      </svg>
+      <span>填</span>
     </ColorPickerWithPreset>
 
-    <el-input
-      v-if="!isTransparent(stationSetting.stroke)"
+    <Input 
       v-model="stationSetting.strokeWidth"
       type="number"
-      style="width: 150px;"
-    >
-      <template #prepend>边宽</template>
-    </el-input>
-
-    <el-input
+      label="边宽"
+      labelInner
+      width="80px"
+    />
+    <Input 
       v-model="stationSetting.radius"
       type="number"
-      style="width: 150px;"
-    >
-      <template #prepend>半径</template>
-    </el-input>
+      label="半径"
+      labelInner
+      width="80px"
+    />
   </div>
 </template>
 
 <script setup>
-import ColorPickerWithPreset from '@/components/ColorPickerWithPreset.vue'
 // drawStore
 import { useDrawStore } from '@/store/drawStore'
 import { storeToRefs } from 'pinia'

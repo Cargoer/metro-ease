@@ -6,38 +6,39 @@
       class="demo-tabs"
     >
       <el-tab-pane label="样式" name="style">
-        <el-form :model="props.station.style" class="demo-form-inline">
-          <el-form-item label="边框颜色">
-            <ColorPickerWithPreset v-model:color="props.station.style.stroke" title="边框颜色" @change="refreshTarget" />
-          </el-form-item>
-          <el-form-item label="填充颜色">
-            <ColorPickerWithPreset v-model:color="props.station.style.fill" title="填充颜色" @change="refreshTarget" />
-          </el-form-item>
-          <el-form-item label="边框线宽">
-            <el-input
-              v-model="props.station.style.strokeWidth"
-              type="number"
-              style="width: 150px;"
-              @blur="refreshTarget"
-            />
-          </el-form-item>
-          <el-form-item label="半径">
-            <el-input
-              v-model="props.station.style.radius"
-              type="number"
-              style="width: 150px;"
-              @blur="refreshTarget"
-            />
-          </el-form-item>
-          <el-form-item label="车站名字体大小">
-            <el-input
-              v-model="props.station.nameFontSize"
-              type="number"
-              style="width: 150px;"
-              @blur="refreshTarget"
-            />
-          </el-form-item>
-        </el-form>
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+          <ColorPickerWithPreset 
+            v-model:color="props.station.style.stroke" 
+            label="边框颜色" 
+            @change="refreshTarget" 
+          />
+          <ColorPickerWithPreset 
+            v-model:color="props.station.style.fill" 
+            label="填充颜色" 
+            @change="refreshTarget" 
+          />
+          <Input 
+            v-model="props.station.style.strokeWidth"
+            type="number"
+            label="边框线宽"
+            width="150px"
+            @blur="refreshTarget"
+          />
+          <Input 
+            v-model="props.station.style.radius"
+            type="number"
+            label="半径"
+            width="150px"
+            @blur="refreshTarget"
+          />
+          <Input 
+            v-model="props.station.nameFontSize"
+            type="number"
+            label="车站名字体大小"
+            width="150px"
+            @blur="refreshTarget"
+          />
+        </div>
       </el-tab-pane>
       <el-tab-pane label="路线站台" name="line" v-if="props.station.lines.length" class="station-tab">
         <div
@@ -64,13 +65,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import LineSetting from '@/components/LineSetting.vue'
-import StationSetting from '@/components/StationSetting.vue'
-import TextSetting from '@/components/TextSetting.vue'
-import ColorPickerWithPreset from '@/components/ColorPickerWithPreset.vue'
 import InfoDisplay from '@/components/InfoDisplay.vue'
-
-import { getRoundCornerD } from '@/tools/svgRelated'
 
 // drawStore
 import { useDrawStore } from '@/store/drawStore'
@@ -116,7 +111,4 @@ onMounted(() => {
     background-color: #1772b4;
   }
 }
-
-
-
 </style>

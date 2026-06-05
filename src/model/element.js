@@ -9,6 +9,9 @@ import { generateUniqueId } from '@/tools/utils'
 // drawStore
 import { useDrawStore } from '@/store/drawStore'
 import { storeToRefs } from "pinia"
+//el-message
+import { ElMessage } from 'element-plus'
+
 let drawStore = null
 let pressedKeys = null
 let zoomInfo = null
@@ -48,6 +51,7 @@ export class Svg {
       y: 0,
       k: 1
     }
+    this.tempZoomCenter = null
     // this.initMainG()
     this.refreshCanvas(width, height)
   }
@@ -68,6 +72,7 @@ export class Svg {
     new Group(globalG, { id: 'grid' }) // 网格图层（参考，不导出）
     const drawPartG = new Group(globalG, { id: 'draw_part' }) // 绘制图层
     new Group(drawPartG, { id: 'global_edge_g' }) // 绘制边界图层
+    new Group(drawPartG, { id: 'global_nature_g' }) // 绘制自然图层
     new Group(drawPartG, { id: 'global_line_g' }) // 绘制线路图层
     new Group(drawPartG, { id: 'global_station_g' }) // 绘制站点图层
     new Group(drawPartG, { id: 'global_text_g' }) // 绘制文本图层
@@ -202,15 +207,20 @@ export class Svg {
     this.mapboxObj.setCenter(newCenterLngLatPos);
   }
 
-  updateMapboxZoomByD3 (event, duration = 0) {
+  updateMapboxZoomByD3 (event, zoomCenterX, zoomCenterY, duration = 0) {
     if (!this.mapboxObj) return
+    // ElMessage({
+    //   message: JSON.stringify(event.sourceEvent),
+    //   type: 'info',
+    // })
 
     // 获取 D3 当前缩放状态
+
     const { k } = event.transform;
 
     // 先记录正确缩放中心的屏幕坐标（以鼠标位置作为缩放中心）
-    const x1 = event.sourceEvent.clientX
-    const y1 = event.sourceEvent.clientY
+    const x1 = zoomCenterX
+    const y1 = zoomCenterY
     const realCenterLatLng = this.mapboxObj.unproject(new mapboxgl.Point(x1, y1))
 
     // 同步缩放
@@ -238,18 +248,52 @@ export class Svg {
   }
 
   // 设置平移缩放
-  setZoom (minScale = 0.1, maxScale = 10, filter) {
+  setZoom (minScale = 0.05, maxScale = 10, filter) {
     this.zoom = d3.zoom()
       .scaleExtent([minScale, maxScale])
       // .translateExtent([[0, 0], [canvasWidth / minScale, canvasHeight / minScale]]) // 防止超出边界
       .on('zoom', (event) => {
         zoomInfo.value = event.transform
         this.children['global_g'].node.attr('transform', event.transform)
+        // console.log('svg on zoom', event)
 
         if (['url', 'local'].includes(this.bgSetting.type)) this.drawCanvasBg()
         if (this.mapboxObj) {
-          const action = event.sourceEvent?.type || 'unknown'
-          if (action === 'wheel') this.updateMapboxZoomByD3(event)
+          // const action = event.sourceEvent?.type || 'unknown'
+          const sourceEvent = event.sourceEvent;
+          const prevK = this.formerZoomInfo.k;   // 上一次的比例尺
+          const currK = event.transform.k;       // 现在的比例尺
+          const isZoomAction = currK !== prevK;  // ✅ 缩放：比例尺变了
+          let zoomCenterX, zoomCenterY;
+
+          // ====== 获取缩放中心点 ======
+          if (isZoomAction) {
+            if (sourceEvent) {
+              if (sourceEvent.type === 'wheel') {
+                // PC 鼠标
+                zoomCenterX = sourceEvent.clientX;
+                zoomCenterY = sourceEvent.clientY;
+              } else if (sourceEvent.type === 'touchmove' && sourceEvent.touches?.length === 2) {
+                // 移动端双指
+                const t1 = sourceEvent.touches[0];
+                const t2 = sourceEvent.touches[1];
+                zoomCenterX = (t1.clientX + t2.clientX) / 2;
+                zoomCenterY = (t1.clientY + t2.clientY) / 2;
+              }
+            } else {
+              // 无事件源，使用临时缩放中心
+              zoomCenterX = this.tempZoomCenter.x
+              zoomCenterY = this.tempZoomCenter.y
+              // 清空临时缩放中心
+              this.tempZoomCenter = null
+            }
+          }
+          // ElMessage({
+          //   message: event.sourceEvent.touches[0].clientX,
+          //   // message: event.sourceEvent.touches[0].clientY,
+          //   type: 'info',
+          // })
+          if (isZoomAction) this.updateMapboxZoomByD3(event, zoomCenterX, zoomCenterY)
           else this.updateMapboxCenterByD3(event)
           // this.updateMapboxByD3(event)
         }
@@ -287,33 +331,48 @@ export class Svg {
   }
 
   addEventListeners (funcObj) {
-    this.node.on('click', (e) => {
-      const [x, y] = d3.pointer(e, this.node.node());
-      const pos = this.transformCoords(x, y)
-      funcObj.click(e, pos)
-    })
-    this.node.on('mousemove', (e) => {
-      const [x, y] = d3.pointer(e, this.node.node());
-      const pos = this.transformCoords(x, y)
-      funcObj.mousemove(e, pos)
-    })
-    this.node.on('mousedown', (e) => {
-      const [x, y] = d3.pointer(e, this.node.node());
-      const pos = this.transformCoords(x, y)
-      funcObj.mousedown(e, pos)
-    })
-    this.node.on('mouseup', (e) => {
-      const [x, y] = d3.pointer(e, this.node.node());
-      const pos = this.transformCoords(x, y)
-      funcObj.mouseup(e, pos)
+    // this.node.on('click', (e) => {
+    //   const [x, y] = d3.pointer(e, this.node.node());
+    //   const pos = this.transformCoords(x, y)
+    //   funcObj.click(e, pos)
+    // })
+    // this.node.on('mousemove', (e) => {
+    //   const [x, y] = d3.pointer(e, this.node.node());
+    //   const pos = this.transformCoords(x, y)
+    //   funcObj.mousemove(e, pos)
+    // })
+    // this.node.on('mousedown', (e) => {
+    //   const [x, y] = d3.pointer(e, this.node.node());
+    //   const pos = this.transformCoords(x, y)
+    //   funcObj.mousedown(e, pos)
+    // })
+    // this.node.on('mouseup', (e) => {
+    //   const [x, y] = d3.pointer(e, this.node.node());
+    //   const pos = this.transformCoords(x, y)
+    //   funcObj.mouseup(e, pos)
+    // })
+    // this.node.on('contextmenu', (e) => {
+    //   const [x, y] = d3.pointer(e, this.node.node());
+    //   const pos = this.transformCoords(x, y)
+    //   funcObj.contextmenu(e, pos)
+    //   e.preventDefault()
+    // })
+
+    Object.entries(funcObj).forEach(([key, func]) => {
+      this.node.on(key, (e) => {
+        e.preventDefault()
+        const [x, y] = d3.pointer(e, this.node.node());
+        const pos = this.transformCoords(x, y)
+        func(e, pos)
+      })
     })
   }
 
   loadBackground (bgSetting) {
-    this.bgSetting = bgSetting
-    if (this.bgSetting.type === 'mapbox') {
+    if (bgSetting.type === 'mapbox') {
       if (!this.mapboxObj) {
         if (!mapboxAccessToken) return
+        this.bgSetting = bgSetting
         this.mapboxObj = new mapboxgl.Map({
           container: 'mapbox-container',
           style: this.bgSetting.style || 'mapbox://styles/mapbox/streets-v11',
@@ -326,14 +385,15 @@ export class Svg {
     }
 
     // 加载原始图像并准备瓦片
+    this.bgSetting = bgSetting
     if (!this.bgSetting.url) return
     return new Promise((resolve) => {
       this.bgImage = new Image();
       // 替换为你的底图URL
       this.bgImage.src = this.bgSetting.url; 
       this.bgImage.onload = () => {
-        const { width, height } = this.bgImage
-        this.refreshCanvas(width, height)
+        // const { width, height } = this.bgImage
+        // this.refreshCanvas(width, height)
         this.drawCanvasBg()
         resolve()
       }
@@ -366,6 +426,18 @@ export class Svg {
     
     // 恢复状态
     ctx.restore();
+  }
+
+  fullDisplay () {
+    const { width, height } = this.children['global_g'].children['draw_part_g'].node.node().getBBox()
+    const sreenWidth = window.innerWidth
+    const sreenHeight = window.innerHeight
+    this.zoomInfo.value = {
+      k: Math.min(sreenWidth / width, sreenHeight / height),
+      x: 0,
+      y: 0,
+    }
+    this.drawCanvasBg()
   }
 }
 
@@ -426,6 +498,7 @@ export class Text {
       borderColor: settings.style.borderColor,
       padding: settings.style.padding || '10 8',
       borderRadius: settings.style.borderRadius,
+      lineHeight: settings.style.lineHeight || 1.5,
     }
     
     this.g = parent.node.append("g").attr("id", `${this.id}_g`)
@@ -465,6 +538,10 @@ export class Text {
 
   findById (id) {
     return id === this.id ? this : null
+  }
+
+  getLines () {
+    return this.content.split('\n')
   }
 
   modifyContent (content) {
@@ -507,7 +584,16 @@ export class Text {
   }
 
   display () {
-    this.node.text(this.content)
+    this.node.selectAll('tspan').remove()
+    const lines = this.getLines()
+    lines.forEach((line, index) => {
+      this.node.append('tspan')
+        .attr('id', `${this.id}_line_${index}`)
+        .attr('x', this.pos.x)
+        .attr('y', this.pos.y + index * Number(this.style.fontSize) * Number(this.style.lineHeight))
+        .text(line)
+    })
+    
     this.node
       .attr('font-size', this.style.fontSize)
       .attr('fill', this.style.textColor)

@@ -9,6 +9,10 @@ import 'element-plus/dist/index.css'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 app.use(ElementPlus, { locale: zhCn })
 
+// 自动全局注册自定义ui组件
+import ui from './ui/index.js'
+app.use(ui)
+
 // 使用pinia状态管理
 import { createPinia } from 'pinia'
 const pinia = createPinia()

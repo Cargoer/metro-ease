@@ -8,7 +8,7 @@ import {
   getDistance,
 } from '@/tools/svgRelated'
 import { draggable } from '@/tools/svgMover'
-import { generateUniqueId } from '@/tools/utils'
+import { generateUniqueId, getContrastTextColor } from '@/tools/utils'
 // drawStore
 import { useDrawStore } from '@/store/drawStore'
 import { storeToRefs } from "pinia"
@@ -52,6 +52,7 @@ export default class Line {
       // 渐显
       visibleWithOffset: settings.visibleWithOffset || false,
     }
+    this.info = {}
 
     this.d = ''
     this.joints = settings.joints || []
@@ -64,14 +65,27 @@ export default class Line {
         } 
       })
     }
+
+    this.jointIdCounter = 0
     
     this.addJointMode = 'push'
     this.g = this.parent.node.append("g").attr('id', `${this.id}_g`)
-    this.basicPath = null
-    this.additionalPath = null // 用于城际铁路展示
+    this.paths = []
     this.selectG = this.g.append('g').attr('id', `${this.id}_select_g`)
     this.previewNode = null
-    this.generateNode()
+
+    // 存量环线数据处理
+    if (settings.style.isClosed) {
+      // 若最后一个节点和第一个节点位置不一致，添加一个节点使环线闭合
+      if (this.joints[this.joints.length - 1].x !== this.joints[0].x || this.joints[this.joints.length - 1].y !== this.joints[0].y) {
+        this.joints.push(this.joints[0])
+      }
+    }
+
+    // 渲染路径
+    if (this.sections.length > 0) {
+      this.refreshDom(true)
+    }
   }
 
   // 浓缩为对象
@@ -90,63 +104,98 @@ export default class Line {
         }
         return jointObj
       }),
-      style: this.style
+      style: this.style,
+      info: this.info
     }
   }
 
-  generateNode () {
-    this.basicPath = this.g.append("path").attr('id', this.id)
-      .attr('stroke', this.style.stroke).attr('stroke-width', this.style.strokeWidth).attr('fill', this.style.fill)
-      .attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
-      .attr('d', this.d).attr('pointer-events', 'stroke')
-    
-    this.additionalPath = this.g.append("path").attr('id', `${this.id}_additional`)
-      .attr('stroke', 'none').attr('stroke-width', Math.round(this.style.strokeWidth * this.style.innerStrokePercent)).attr('fill', 'none')
-      .attr('stroke-linejoin', 'round')
-      .attr('d', this.d).attr('pointer-events', 'stroke')
-
-    
-    this.refreshStyle()
-
-    this.addEventListeners()
-
-    if (this.joints.length > 1) {
-      this.generateD(this.joints)
-    }
+  clearDomArr (arr) {
+    arr.forEach((v, index) => {
+      v.basicPath.remove()
+      v.additionalPath.remove()
+    })
+    arr = []
   }
 
-  refreshStyle (styleObj) {
-    if (styleObj) {
-      for (let [key, value] of Object.entries(styleObj)) {
-        this.basicPath.attr(key, value)
+  bindToSelect (ele) {
+    ele.on('click', (e) => {
+      if (tool.value === 'select') { // 选中该路径
+        e.stopPropagation()
+        if (selectedElement.value) {
+          selectedElement.value.setSelect(false)
+        }
+        this.setSelect(true)
       }
-    } else {
-      this.basicPath
+    })
+  }
+
+  // 刷新DOM，包含样式
+  refreshDom (withNumberChange = false) {
+    this.clearDomArr(this.paths)    
+    for (let i = 0; i < this.sections.length; i++) {
+      const sectionD = this.getPathD(this.sections[i].joints, true)
+      const basicPath = this.g.append("path").attr('id', `${this.id}_basic_${i}`)
+        .attr('stroke', this.style.stroke).attr('stroke-width', this.style.strokeWidth).attr('fill', this.style.fill)
+        .attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
+        .attr('d', sectionD).attr('pointer-events', 'visibleStroke')
+      this.bindToSelect(basicPath)
+      
+      const additionalPath = this.g.append("path").attr('id', `${this.id}_additional_${i}`)
+        .attr('stroke', 'none').attr('stroke-width', Math.round(this.style.strokeWidth * this.style.innerStrokePercent)).attr('fill', 'none')
+        // .attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
+        .attr('d', sectionD).attr('pointer-events', 'visibleStroke')
+      this.bindToSelect(additionalPath)
+
+      this.paths.push({ basicPath, additionalPath, tag: this.sections[i].tag })
+    }
+    this.refreshStyle()
+    if (this.previewNode) { // 已绘制，清除预览
+      this.previewNode.remove()
+      this.previewNode = null
+    }
+  }
+
+  // 仅刷新样式，不刷新DOM
+  refreshStyle () {
+    for (let i = 0; i < this.paths.length; i++) {
+      if (this.paths[i].tag === 'hidden') {
+        this.paths[i].basicPath.attr('stroke', 'none')
+        this.paths[i].basicPath.attr('fill', 'none')
+        this.paths[i].additionalPath.attr('fill', 'none')
+        this.paths[i].additionalPath.attr('stroke', 'none')
+        continue
+      } else if (this.paths[i].tag === 'gray') {
+        this.paths[i].basicPath.attr('stroke', '#bbb')
+        this.paths[i].basicPath.attr('fill', 'none')
+        this.paths[i].additionalPath.attr('stroke', 'none')
+        continue
+      }
+      this.paths[i].basicPath
         .attr('stroke', this.style.stroke)
         .attr('stroke-width', this.style.strokeWidth)
         .attr('fill', this.style.fill)
 
       switch (this.style.pattern) {
         case 'dashed':
-          this.basicPath.attr('stroke-dasharray', this.style.dashArray)
-          this.basicPath.attr('stroke-dashoffset', '0')
+          this.paths[i].basicPath.attr('stroke-dasharray', this.style.dashArray)
+          this.paths[i].basicPath.attr('stroke-dashoffset', '0')
           break
         case 'railway':
-          this.additionalPath
+          this.paths[i].additionalPath
             .attr('stroke', '#fff')
             .attr('stroke-width', Math.round(this.style.strokeWidth * this.style.innerStrokePercent))
             .attr('stroke-dasharray', this.style.dashArray)
             .attr('stroke-dashoffset', '0')
           break
         case 'fastline':
-          this.additionalPath
+          this.paths[i].additionalPath
             .attr('stroke', '#fff')
             .attr('stroke-width', Math.round(this.style.strokeWidth * this.style.innerStrokePercent))
             .attr('stroke-dasharray', '')
           break
         default:
-          this.basicPath.attr('stroke-dasharray', '')
-          this.additionalPath
+          this.paths[i].basicPath.attr('stroke-dasharray', '')
+          this.paths[i].additionalPath
             .attr('stroke-dasharray', '')
             .attr('stroke', 'none')
           break
@@ -158,10 +207,11 @@ export default class Line {
   preview (newJoints) {
     const previewJoints = [ ...this.joints ]
     previewJoints[this.addJointMode](newJoints)
-    const d = this.generateD(previewJoints, true)
+    const d = this.getPathD(previewJoints)
     if (!this.previewNode) {
       this.previewNode = this.parent.node.append("path").attr('id', `${this.id}_preview`)
         .attr('stroke', this.style.stroke).attr('stroke-width', this.style.strokeWidth).attr('fill', this.style.fill)
+        .attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
       
       if (this.style.isDashed) {
         this.previewNode.attr('stroke-dasharray', this.style.dashArray)
@@ -176,9 +226,11 @@ export default class Line {
       this.previewNode.remove()
       this.previewNode = null
     }
+    this.refreshDom()
   }
 
   setExtendNode () {
+    if (this.isClosed) return
     for (let index of [0, this.joints.length - 1]) {
       const joint = this.joints[index]
       this.parent.parent.node.append('circle')
@@ -220,22 +272,38 @@ export default class Line {
     return getDistance(pos, end) < this.style.strokeWidth / 2
   }
 
-  generateD (joints, readOnly = false) {
+  get sections () {
+    const arr = []
+    let curJoints = []
+    let curMode = 'normal'
+    this.joints.forEach((joint, index) => {
+      curJoints.push(joint)
+      if (!this.joints[index + 1]) {
+        arr.push({
+          joints: curJoints,
+          tag: curMode
+        })
+        curJoints = [joint]
+      } else if ((this.joints[index + 1].tag || 'normal') !== curMode) {
+        arr.push({
+          joints: curJoints,
+          tag: curMode
+        })
+        curMode = this.joints[index + 1]?.tag || 'normal'
+        curJoints = [joint]
+      }
+    })
+    return arr
+  }
+
+  getPathD (joints, isSection = false) {
     if (joints.length < 2) return
-
-    if (!readOnly && !this.style.isClosed) {
-      this.parent.parent.node.select(`#${this.id}_start`).remove()
-      this.parent.parent.node.select(`#${this.id}_end`).remove()
-    }
-
 
     let d = ''
     const trueJoints = []
     joints.forEach((joint, index) => {
       if (index === 0) {
         d += `M${joint.x},${joint.y}`
-        trueJoints.push(joint)
-      } else if (joint.type === 'round') {
         trueJoints.push(joint)
       } else if (joint.type === 'from135') {
         const { d, turnPoint } = get135ConnectionD(
@@ -262,7 +330,6 @@ export default class Line {
         trueJoints.push(joint)
       }
     })
-    console.log(trueJoints)
     let trueD = ''
     trueJoints.forEach((joint, index) => {
       if (!joint) return
@@ -279,29 +346,8 @@ export default class Line {
         )
       }
     })
-    if (this.style.isClosed && !readOnly) trueD += 'Z'
-    if (!readOnly) {
-      this.d = trueD
-      this.basicPath.attr('d', trueD)
-      this.additionalPath.attr('d', trueD)
-
-      const pathLength = this.basicPath.node().getTotalLength()
-
-      // 渐显
-      if (this.style.visibleWithOffset) {
-        this.basicPath.attr('stroke-dasharray', pathLength)
-        this.additionalPath.attr('stroke-dasharray', pathLength)
-        this.basicPath.attr('stroke-dashoffset', pathLength)
-        this.additionalPath.attr('stroke-dashoffset', pathLength)
-      }
-
-      if (this.previewNode) { // 已绘制，清除预览
-        this.previewNode.remove()
-        this.previewNode = null
-      }
-    } else {
-      return trueD
-    }
+    if (this.style.isClosed && !isSection) trueD += 'Z'
+    return trueD
   }
 
   addStationInLine (joint) {
@@ -318,13 +364,19 @@ export default class Line {
     joint.relatedStationId = newStation.id
   }
 
-  closeLine () {
-    if (this.joints.length > 2) {
-      this.style.isClosed = true
-      this.parent.node.selectAll('#path-closed-indicator').remove()
-      this.parent.parent.node.select(`#${this.id}_start`).remove()
-      this.parent.parent.node.select(`#${this.id}_end`).remove()
-      this.generateD(this.joints)
+  closeLine (isClosed = true) {
+    if (isClosed) {
+      if (this.joints.length > 2) {
+        this.style.isClosed = true
+        this.addJoint({ ...this.joints[0], id: this.jointIdCounter++ })
+        this.removePreview()
+        this.parent.node.selectAll('#path-closed-indicator').remove()
+        this.parent.parent.node.select(`#${this.id}_start`).remove()
+        this.parent.parent.node.select(`#${this.id}_end`).remove()
+      }
+    } else {
+      this.style.isClosed = false
+      this.removeJoint(this.joints[this.joints.length - 1])
     }
   }
 
@@ -335,7 +387,7 @@ export default class Line {
       .attr('r', joint.relatedStationId ? 6 : this.style.strokeWidth)
       .attr('fill', this.style.stroke)
       .attr('class', 'selected_line_joint')
-    
+
     const jointContextMenuOptions = [
       {
         title: '删除该节点',
@@ -352,6 +404,25 @@ export default class Line {
         }
       }
     ]
+    if (this.style.isClosed && index === this.joints.length - 1) {
+      drawGNode.append('text')
+        .attr('x', joint.x).attr('y', joint.y)
+        .attr('fill', getContrastTextColor(this.style.stroke))
+        .attr('class', 'cancel_close')
+        .attr('text-anchor', 'middle')
+        .attr('dominant-baseline', 'middle')
+        .attr('user-select', 'none')
+        .attr('pointer-events', 'none')
+        .text('×')
+      jointContextMenuOptions.push({
+        title: '取消成环',
+        action: () => {
+          this.closeLine(false)
+          d3.select('.cancel_close').remove()
+          this.refreshSelect()
+        }
+      })
+    }
     addContextMenu(jointNode, jointContextMenuOptions)
     
     draggable(jointNode, (pos) => {
@@ -361,10 +432,17 @@ export default class Line {
         const station = this.root.stationMap[joint.relatedStationId]
         station.modifyPoints({
           key: 'relatedLineId',
-          value: this
+          value: this.id
         }, pos)
       }
-      this.generateD(this.joints)
+      if (index === this.joints.length - 1) {
+        this.joints[0].x = joint.x
+        this.joints[0].y = joint.y
+      } else if (index === 0) {
+        this.joints[this.joints.length - 1].x = joint.x
+        this.joints[this.joints.length - 1].y = joint.y
+      }
+      this.refreshDom()
       this.refreshSelect()
     })
   }
@@ -374,9 +452,10 @@ export default class Line {
       ...this.joints[index - 1],
     }
     const sectionNode = this.parent.node.append('path')
-      .attr('d', this.generateD([prevJoint, joint], true))
+      .attr('d', this.getPathD([prevJoint, joint], true))
       .attr('stroke', this.style.stroke).attr('stroke-width', this.style.strokeWidth).attr('fill', this.style.fill)
       .attr('class', 'selected_line_section')
+      .attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round')
       .on('mouseover', (e) => {
         if (['from135', 'from90'].includes(joint.type)) {
           const dx = joint.x - prevJoint.x
@@ -395,19 +474,19 @@ export default class Line {
         // 点击切换拐向
         if (['from135', 'from90'].includes(joint.type)) {
           joint.flag = !joint.flag
-          this.generateD(this.joints)
+          this.refreshDom()
           // this.setSelect(false)
-          d3.select(e.target).attr('d', this.generateD([prevJoint, joint], true))
+          d3.select(e.target).attr('d', this.getPathD([prevJoint, joint], true))
           this.refreshSelect()
         }
       })
-      
+     
     const sectionContextMenuOptions = [
       {
         title: '更改为直线连接',
         action: () => {
           joint.type = 'joint'
-          this.generateD(this.joints)
+          this.refreshDom()
           this.refreshSelect()
         }
       },
@@ -418,7 +497,7 @@ export default class Line {
           joint.r = 10
           joint.flag = true
           // this.joints[index - 1].type = 'joint'
-          this.generateD(this.joints)
+          this.refreshDom()
           this.refreshSelect()
         }
       },
@@ -428,8 +507,7 @@ export default class Line {
           joint.type = 'from90'
           joint.r = 10
           joint.flag = true
-          // this.joints[index - 1].type = 'joint'
-          this.generateD(this.joints)
+          this.refreshDom()
           this.refreshSelect()
         }
       },
@@ -457,8 +535,47 @@ export default class Line {
           this.addJoint(newJoint, index)
           this.refreshSelect()
         }
-      }
+      },
+      {
+        title: '删除路线 (delete)',
+        action: () => {
+          this.delete()
+        }
+      },
     ]
+    const toTag = (tag) => {
+      const mapTag = {
+        hidden: '隐藏',
+        gray: '置灰',
+        normal: '恢复',
+      }
+      return {
+        title: `${mapTag[tag]}此段`,
+        action: () => {
+          joint.tag = tag
+          this.refreshDom()
+          this.refreshSelect()
+        }
+      }
+    }
+    switch (joint.tag) {
+      case 'hidden':
+        sectionContextMenuOptions.push(toTag('normal'))
+        sectionContextMenuOptions.push(toTag('gray'))
+        sectionNode.style('opacity', 0.2)
+        break
+      case 'gray':
+        sectionContextMenuOptions.push(toTag('normal'))
+        sectionContextMenuOptions.push(toTag('hidden'))
+        sectionNode.attr('stroke', '#bbb')
+        break
+      case 'normal':
+        sectionContextMenuOptions.push(toTag('hidden'))
+        sectionContextMenuOptions.push(toTag('gray'))
+        break
+      default:
+        break
+    }
     addContextMenu(sectionNode, sectionContextMenuOptions)
   }
 
@@ -466,8 +583,9 @@ export default class Line {
     this.parent.parent.node.selectAll('.selected_line_joint').remove()
     this.parent.node.selectAll('.selected_line_section').remove()
     this.parent.node.selectAll('.selected_line_indicator').remove()
+    this.parent.parent.node.selectAll('.cancel_close').remove()
     
-    const d = this.generateD(this.joints, true)
+    const d = this.getPathD(this.joints)
     this.parent.node.append('path')
       .attr('d', d)
       .attr('stroke', this.style.stroke).attr('stroke-width', this.style.strokeWidth * 2)
@@ -486,64 +604,44 @@ export default class Line {
     })
   }
 
-
   setSelect (isSelected) {
     if (isSelected) {
       selectedElement.value = this
       this.refreshSelect()
     } else {
+      this.refreshDom()
       selectedElement.value = null
       // 移除选中线的指示线
       this.parent.parent.node.selectAll('.selected_line_indicator').remove()
       this.parent.parent.node.selectAll('.selected_line_joint').remove()
       this.parent.node.selectAll('.selected_line_section').remove()
+      this.parent.parent.node.selectAll('.cancel_close').remove()
     }
   }
 
-  addEventListeners () {
-    this.basicPath
-      .on('click', (e) => {
-        if (tool.value === 'select') { // 选中该路径
-          e.stopPropagation()
-          if (selectedElement.value) {
-            selectedElement.value.setSelect(false)
-          }
-          this.setSelect(true)
-        }
-      })
-
-    this.additionalPath
-      .on('click', (e) => {
-        if (tool.value === 'select') { // 选中该路径
-          e.stopPropagation()
-          if (selectedElement.value) {
-            selectedElement.value.setSelect(false)
-          }
-          this.setSelect(true)
-        }
-      })
-  }
-
   addJoint (joint, index = null) {
-    console.log(`addJoint`, joint, index)
+    if (!joint.tag) joint.tag = 'normal'
+    joint.id = this.jointIdCounter++
     if (index === null) {
       this.joints[this.addJointMode](joint)
     } else {
       this.joints.splice(index, 0, joint)
     }
-    this.generateD(this.joints)
+    if (!this.previewNode) {
+      this.refreshDom(true)
+    }
   }
 
   removeJoint (joint) {
     const index = this.joints.findIndex(item => item === joint)
     if (index !== -1) {
       this.joints.splice(index, 1)
-      this.generateD(this.joints)
+      this.refreshDom(true)
       if (joint.relatedStationId) {
         const station = this.root.stationMap[joint.relatedStationId]
         station.removePoints({
-          key: 'relatedLine',
-          value: this
+          key: 'relatedLineId',
+          value: this.id
         })
       }
     }
@@ -564,7 +662,14 @@ export default class Line {
           y: newPos.y,
         })
       }
-      this.generateD(this.joints)
+      this.refreshDom()
+    }
+  }
+
+  relatedStationDelete (stationId) {
+    const joint = this.joints.find(item => item.relatedStationId === stationId)
+    if (joint) {
+      delete joint.relatedStationId
     }
   }
 
@@ -580,8 +685,10 @@ export default class Line {
         this.additionalPath.remove()
       })
     } else {
-      this.basicPath.remove()
-      this.additionalPath.remove()
+      this.paths.forEach(path => {
+        path.basicPath.remove()
+        path.additionalPath.remove()
+      })
     }
 
     this.joints.forEach(joint => {
@@ -591,8 +698,8 @@ export default class Line {
           station.delete()
         } else {
           station.removePoints({
-            key: 'relatedLine',
-            value: this
+            key: 'relatedLineId',
+            value: this.id
           })
         }
       }
@@ -610,7 +717,7 @@ export default class Line {
       type: 'from135'
     }))
     this.joints = newJoints
-    this.generateD(this.joints)
+    this.refreshDom()
   }
 
   modifyName (name) {

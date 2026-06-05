@@ -6,8 +6,7 @@
       ref="projectUpload"
       accept=".json"
       :show-file-list="false"
-      :on-success="handleJsonImport"
-      :on-error="handleJsonImportError"
+      :on-error="(err) => ElMessage.error(`导入JSON失败: ${err.message}`)"
       :on-change="handleJsonChange"
       action="#"
       :auto-upload="false"
@@ -43,57 +42,77 @@
       <TextSetting />
     </div> -->
 
+    <!-- 导入底图 -->
     <Dialog
       v-model:visible="importBgDialogVisible"
       title="导入底图"
       :with-button="false"
       width="500"
     >
-      <el-form ref="importBgForm" label-width="100px">
-        <el-form-item label="底图类型">
-          <el-select v-model="bgSetting.type" placeholder="请选择底图类型">
-            <el-option label="网络图片" value="url" />
-            <el-option label="本地图片" value="local" />
-            <el-option label="Mapbox" value="mapbox" />
-          </el-select>
-        </el-form-item>
-        <template v-if="bgSetting.type === 'url'">
-          <el-form-item  label="底图URL">
-            <el-input v-model="bgSetting.url" placeholder="请输入图片网络链接" required />
-            <el-button type="primary" @click="submitBackground" style="margin-top: 8px;">确定</el-button>
-          </el-form-item>
-        </template>
-        <template v-else-if="bgSetting.type === 'local'">
-          <el-form-item label="上传底图">
-            <el-upload
-              ref="bgImageUpload"
-              :show-file-list="false"
-              :on-change="handleFileChange"
-              action="#"
-              :auto-upload="false"
-            >
-              <template #trigger>
-                <el-button type="primary">上传底图</el-button>
-              </template>
-            </el-upload>
-          </el-form-item>
-        </template>
-        <template v-else-if="bgSetting.type === 'mapbox'">
-          <el-form-item label="中心经纬度" >
-            <el-input type="number" v-model.number="bgSetting.center[0]" placeholder="经度" style="width: 100px; display: inline-block; margin-right: 8px;" />
-            <el-input type="number" v-model.number="bgSetting.center[1]" placeholder="纬度" style="width: 100px; display: inline-block;" />
-          </el-form-item>
-          <el-form-item label="缩放级别">
-            <el-input type="number" v-model.number="bgSetting.zoom" placeholder="请输入Mapbox缩放级别" />
-          </el-form-item>
-          <el-form-item label="样式URL">
-            <el-input v-model="bgSetting.style" placeholder="请输入Mapbox样式URL" />
-          </el-form-item>
-          <el-button type="primary" @click="submitBackground" style="margin-top: 8px;">确定</el-button>
-        </template>
-      </el-form>
+      <BgSelect @submit="importBgDialogVisible = false" />
     </Dialog>
 
+    <!-- 保存为图片 -->
+    <Dialog
+      v-model:visible="saveDialogVisible"
+      title="保存为图片"
+      :with-button="false"
+      width="500"
+    >
+      <SaveAsImage @submit="saveDialogVisible = false" />
+    </Dialog>
+
+    <!-- 画布管理 -->
+    <Dialog
+      v-model:visible="canvasManageVisible"
+      title="画布管理"
+      width="500"
+      :withButton="false"
+    >
+      <div class="fc" style="align-items: center; gap: 15px;">
+        <div v-if="svg.canvasList.length === 0">
+          <el-empty description="暂无画布" />
+        </div>
+        <div v-for="canvas in svg.canvasList" :key="canvas.id" class="fr" style="align-items: center; gap: 15px;">
+          <Input v-model="canvas.name" placeholder="请输入画布名称" width="180px" />
+          <Checkbox v-model="canvas.visible" label="可见" @change="(val) => canvas.setVisible(val)" />
+          <Checkbox v-model="canvas.locked" label="锁定" @change="(val) => canvas.setLocked(val)" />
+          <el-button type="danger" size="small" @click="canvas.delete()">删除</el-button>
+        </div>
+      </div>
+    </Dialog>
+
+    <!-- 车站样式管理 -->
+    <Dialog
+      v-model:visible="stationManageVisible"
+      title="站点样式管理"
+      width="500"
+      :withButton="false"
+    >
+      <GeneralStationStyle @submit="stationManageVisible = false" />
+    </Dialog>
+
+    <!-- 统计 -->
+    <Dialog
+      v-model:visible="statVisible"
+      :with-button="false"
+      title="统计"
+      width="500"
+    >
+      <Statistics />
+    </Dialog>
+
+    <!-- 名称猜站 -->
+    <Dialog
+      v-model:visible="guessStationVisible"
+      :with-button="false"
+      title="名称猜站"
+      width="500"
+    >
+      <GuessStation />
+    </Dialog>
+
+    <!-- 快捷键 -->
     <Dialog
       v-model:visible="helpVisible"
       :with-button="false"
@@ -101,15 +120,15 @@
       width="500"
     >
       <div class="fc" style="align-items: flex-start;">
-        <h2>全局模式下</h2>
+        <h3>全局模式下</h3>
         <p>空格键+鼠标移动: 拖动画布</p>
         <p>1-6: 分别对应工具栏的6种工具</p>
-        <h2>路径模式下</h2>
+        <h3>路径模式下</h3>
         <p>Enter: 结束路径绘制</p>
         <p>s: 同时绘制站点</p>
-        <h2>其他</h2>
-        <p>选中路径后可调整对应节点，也可以右击路径进行操作</p>
-        <p>双击文本可编辑</p>
+        <h3>选中模式下</h3>
+        <p>delete: 删除选中的路径或站点</p>
+        <p>可拖拽路径节点或右键菜单操作来调整路径</p>
       </div>
     </Dialog>
   </div>
@@ -117,33 +136,41 @@
 
 <script setup>
 import { ref, reactive } from 'vue'
-import { getRoundCornerD } from '@/tools/svgRelated'
+import { importJson, exportJsonByInstance } from '@/tools/dataRelated'
 import { toolEnum } from '@/data/toolEnum'
+import { ElMessage } from 'element-plus'
 import ColorPickerWithPreset from '@/components/ColorPickerWithPreset.vue'
 import LineSetting from '@/components/LineSetting.vue'
 import StationSetting from '@/components/StationSetting.vue'
 import TextSetting from '@/components/TextSetting.vue'
-import Dialog from '@/components/Dialog.vue'
 
 import Menu from '@/ui/Menu.vue'
+import BgSelect from '@/components/drawTool/BgSelect.vue'
+import SaveAsImage from '@/components/drawTool/SaveAsImage.vue'
+import GeneralStationStyle from '@/components/drawTool/GeneralStationStyle.vue'
+import Statistics from '@/components/drawTool/Statistics.vue'
+import GuessStation from '@/components/drawTool/GuessStation.vue'
 
 const projectUploadBtn = ref(null)
 const helpVisible = ref(false)
-
-
+const importBgDialogVisible = ref(false)
+const saveDialogVisible = ref(false)
+const canvasManageVisible = ref(false)
+const stationManageVisible = ref(false)
+const statVisible = ref(false)
+const guessStationVisible = ref(false)
 
 // 绘图相关的全局变量
 import { useDrawStore } from '@/store/drawStore.js'
 import { storeToRefs } from 'pinia'
 const drawStore = useDrawStore()
-const { tool, lineSetting, stationSetting, textSetting, bgType, mapboxSetting, bgSetting, drawRect } = storeToRefs(drawStore)
+const { tool, lineSetting, stationSetting, textSetting, bgType, mapboxSetting, bgSetting, drawRect, svg, selectedElement } = storeToRefs(drawStore)
 
 const menuItems = reactive([
   {
     text: '项目',
     showSubItems: false,
     func: (item) => {
-      console.log(item)
       item.showSubItems = !item.showSubItems
     },
     subItems: [
@@ -157,13 +184,14 @@ const menuItems = reactive([
       {
         text: '导出项目',
         func: () => {
-          emits('exportSvg')
+          const drawPartG = svg.value.children['global_g'].children['draw_part']
+          exportJsonByInstance(drawPartG, svg.value.bgSetting)  
         }
       },
       {
         text: '保存为图片',
         func: () => {
-          emits('saveSvg')
+          saveDialogVisible.value = true
         }
       }
     ]
@@ -190,15 +218,49 @@ const menuItems = reactive([
       {
         text: '管理画布',
         func: () => {
-          emits('canvasManage')
+          canvasManageVisible.value = true
         }
       },
       {
         text: '清除所有元素',
         func: () => {
-          emits('clearCanvas')
+          clearCanvas()
         }
       }
+    ]
+  },
+  {
+    text: '样式',
+    subItems: [
+      {
+        text: '统一修改车站样式',
+        func: () => {
+          stationManageVisible.value = true
+        }
+      },
+      // {
+      //   text: '统一修改路线样式',
+      //   func: () => {
+      //     tool.value = toolEnum.path
+      //   }
+      // }
+    ]
+  },
+  {
+    text: '统计',
+    subItems: [
+      {
+        text: '统计站名',
+        func: () => {
+          statVisible.value = true
+        }
+      },
+      // {
+      //   text: '名称猜站',
+      //   func: () => {
+      //     guessStationVisible.value = true
+      //   }
+      // }
     ]
   },
   {
@@ -208,8 +270,6 @@ const menuItems = reactive([
     }
   }
 ])
-
-const importBgDialogVisible = ref(false)
 
 const emits = defineEmits([ 
   'submitBackground', 
@@ -224,20 +284,6 @@ function updateTool (toolValue) {
   tool.value = toolValue
 }
 
-function handleFileChange(file, fileList) {
-  bgSetting.value.url = URL.createObjectURL(file.raw)
-  submitBackground()
-}
-
-function submitBackground () {
-  emits('submitBackground', bgSetting.value)
-  importBgDialogVisible.value = false
-}
-
-function handleJsonImport (res, file) {
-  console.log('导入JSON成功', res)
-}
-
 async function handleJsonChange (file) {
   return new Promise((resolve, reject) => {
     // 创建FileReader实例
@@ -249,8 +295,9 @@ async function handleJsonChange (file) {
         // 解析JSON数据
         const jsonData = JSON.parse(e.target.result);
         // 在这里可以处理你的JSON数据
-        // this.processJsonData(jsonData);
-        emits('importJson', jsonData)
+        if (svg.value) {
+          importJson(jsonData, svg.value.children['global_g'])
+        }
         resolve(jsonData)
       } catch (error) {
         console.error('JSON解析错误:', error);
@@ -263,8 +310,18 @@ async function handleJsonChange (file) {
   })
 }
 
-function handleJsonImportError (err, file) {
-  console.error('导入JSON失败:', err, '文件信息:', file)
+function clearCanvas () {
+  svg.value.children['global_g'].children['draw_part'].children['global_line_g'].node.selectAll('*').remove()
+  svg.value.children['global_g'].children['draw_part'].children['global_line_g'].children = {}
+  svg.value.children['global_g'].children['draw_part'].children['global_station_g'].node.selectAll('*').remove()
+  svg.value.children['global_g'].children['draw_part'].children['global_station_g'].children = {}
+  // 清除文本
+  svg.value.children['global_g'].children['draw_part'].children['global_text_g'].node.selectAll('*').remove()
+  svg.value.children['global_g'].children['draw_part'].children['global_text_g'].children = {}
+  // 清除选中元素
+  selectedElement.value = null
+  // 背景图url设置为空
+  // svg.loadBackground('')
 }
 </script>
 
@@ -286,6 +343,10 @@ function handleJsonImportError (err, file) {
   display: flex;
   // flex-direction: column;
   gap: 8px;
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 20;
 
   .group {
     display: flex;

@@ -315,7 +315,7 @@ export async function saveSvgWithBg(
     bgUrl = '', 
     watermarkText = '', 
     imageName = '我的地铁图', 
-    format = 'image/png', 
+    format = 'png', 
     quality = 0.95, 
     watermarkPosition = 'bottom-left', 
     padding = 100,
@@ -431,6 +431,21 @@ export async function saveSvgWithBg(
   
   // 创建SVG字符串
   const svgString = new XMLSerializer().serializeToString(svgToSave);
+
+  if (format === 'svg') {
+    const source = '<?xml version="1.0" standalone="no"?>\r\n' + svgString
+
+    const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(source)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = imageName + '.' + format
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    ElMessage.success('导出图片成功');
+
+    return 'ok'
+  }
   
   // 创建Blob对象
   const blob = new Blob([svgString], {type: 'image/svg+xml;charset=utf-8'});
@@ -450,7 +465,7 @@ export async function saveSvgWithBg(
     ctx.drawImage(img, 0, 0);
 
     const link = document.createElement('a');
-    link.download = imageName + '.' + format.split('/')[1];
+    link.download = imageName + '.' + format;
     link.href = canvas.toDataURL(format, quality);
     link.click();
     ElMessage.success('导出图片成功');

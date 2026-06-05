@@ -15,7 +15,7 @@ export default class Rect {
     this.type = 'rect'
     this.startPoint = startPoint
     this.endPoint = endPoint || null
-    this.node = this.parent.node.append('path').attr('id', this.id).attr('fill', 'none').attr('stroke', '#000000').attr('stroke-width', 2)
+    this.node = this.parent.node.append('path').attr('id', this.id).attr('fill', 'none').attr('stroke', '#000000').attr('stroke-width', 2).attr('pointer-events', 'visibleStroke')
   }
 
   get width() {

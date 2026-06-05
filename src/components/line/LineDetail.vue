@@ -6,76 +6,66 @@
       class="demo-tabs"
     >
       <el-tab-pane label="样式" name="style">
-        <el-form :model="props.line.style" class="demo-form-inline">
-          <el-form-item label="路径颜色">
-            <ColorPickerWithPreset v-model:color="props.line.style.stroke" title="边框颜色" @change="refreshTarget" />
-          </el-form-item>
-          <el-form-item label="填充颜色">
-            <ColorPickerWithPreset v-model:color="props.line.style.fill" title="填充颜色" @change="refreshTarget" />
-          </el-form-item>
-          <el-form-item label="路径线宽">
-            <el-input
-              v-model="props.line.style.strokeWidth"
-              type="number"
-              style="width: 150px;"
-              @blur="refreshTarget"
-            />
-          </el-form-item>
-
-          <el-form-item label="路线样式">
-            <el-select
-              v-model="props.line.style.pattern"
-              placeholder="请选择路线样式"
-              style="width: 150px;"
-              @change="refreshTarget"
-            >
-              <el-option label="默认" value="default" />
-              <el-option label="虚线" value="dashed" />
-              <el-option label="快线" value="fastline" />
-              <el-option label="铁路" value="railway" />
-            </el-select>
-            <el-input
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+          <ColorPickerWithPreset 
+            v-model:color="props.line.style.stroke" 
+            label="路径颜色"
+            title="边框颜色" @change="refreshTarget" 
+          />
+          <ColorPickerWithPreset 
+            v-model:color="props.line.style.fill" 
+            label="填充颜色"
+            title="填充颜色" @change="refreshTarget" 
+          />
+          <Input
+            v-model="props.line.style.strokeWidth"
+            type="number"
+            label="路径线宽"
+            :width="inputAndSelectWidth"
+            @blur="refreshTarget"
+          />
+          <Select
+            v-model="props.line.style.pattern"
+            placeholder="请选择路线样式"
+            :width="inputAndSelectWidth"
+            label="路线样式"
+            @change="refreshTarget"
+            :options="[
+              { label: '默认', value: 'default' },
+              { label: '虚线', value: 'dashed' },
+              { label: '快线', value: 'fastline' },
+              { label: '铁路', value: 'railway' },
+            ]"
+          />
+          <div
+            v-if="['dashed', 'railway', 'fastline'].includes(props.line.style.pattern)" 
+            style="border-left: 2px solid #1772b4; border-radius: 4px; padding-left: 10px; margin-bottom: 10px;"
+          >
+            <Input
               v-if="['dashed', 'railway'].includes(props.line.style.pattern)"
               v-model="props.line.style.dashArray"
-              style="width: 200px;"
+              label="虚线间隔"
+              :width="inputAndSelectWidth"
               @blur="refreshTarget"
-            >
-              <template #prepend>虚线间隔</template>
-            </el-input>
-            <el-input
+            />
+            <Input
               v-if="['fastline', 'railway'].includes(props.line.style.pattern)"
               v-model="props.line.style.innerStrokePercent"
-              type="number"
-              min="0"
-              max="1"
-              step="0.1"
-              style="width: 200px;"
+              label="内线占比"
+              :width="inputAndSelectWidth"
               @blur="refreshTarget"
-            >
-              <template #prepend>内线占比</template>
-            </el-input>
-          </el-form-item>
+            />
+          </div>
 
-          <el-form-item>
-            <el-checkbox
-              v-model="props.line.style.isRoundCorner"
-              @change="refreshTarget"
-              style="margin-right: 10px;"
-            >
-              设置圆角
-            </el-checkbox>
-            <el-input
-              v-if="props.line.style.isRoundCorner"
-              type="number"
-              v-model="props.line.style.roundCornerRadius"
-              style="width: 150px;"
-              @blur="refreshTarget"
-            >
-              <template #prepend>圆角半径</template>
-            </el-input>
-          </el-form-item>
-
-        </el-form>
+          <Input
+            v-model="props.line.style.roundCornerRadius"
+            label="圆角半径"
+            :width="inputAndSelectWidth"
+            type="number"
+            @blur="refreshTarget"
+          />
+        </div>
+        
       </el-tab-pane>
       <el-tab-pane label="站点" name="stations" v-if="props.line.stations.length" class="station-tab">
         <div
@@ -90,8 +80,8 @@
           <span>{{ station.name }}</span>
           <div class="transfers fr" v-if="station.lines.length">
             <div 
-              v-for="line in station.lines.filter(line => line.id !== props.line.id)" 
-              :key="line.id + 't'"
+              v-for="line in station.lines.filter(line => line?.id !== props.line.id)" 
+              :key="line?.id + 't'"
               class="transfer-indicator"
               style="width: 10px; height: 10px; border-radius: 50%; gap: 8px;"
               :style="{
@@ -102,7 +92,7 @@
         </div>
       </el-tab-pane>
       <el-tab-pane label="更多信息" name="info">
-
+        <InfoDisplay :infoObj="props.line.info" />
       </el-tab-pane>
     </el-tabs>
   </div>
@@ -110,12 +100,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import LineSetting from '@/components/LineSetting.vue'
-import StationSetting from '@/components/StationSetting.vue'
-import TextSetting from '@/components/TextSetting.vue'
-import ColorPickerWithPreset from '@/components/ColorPickerWithPreset.vue'
-
-import { getRoundCornerD } from '@/tools/svgRelated'
+import InfoDisplay from '@/components/InfoDisplay.vue'
 
 // drawStore
 import { useDrawStore } from '@/store/drawStore'
@@ -124,6 +109,7 @@ const drawStore = useDrawStore()
 const { selectedElement } = storeToRefs(drawStore)
 
 const activeName = ref('style')
+const inputAndSelectWidth = '150px'
 
 const props = defineProps({
   line: {

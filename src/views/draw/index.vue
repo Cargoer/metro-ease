@@ -1,15 +1,7 @@
 <template>
   <!-- 添加一个颜色选择器 -->
   <div class="fc">
-    <DrawTool
-      class="draw-tool" 
-      @submitBackground="(v) => svg.loadBackground(v)" 
-      @saveSvg="saveDialogVisible = true"
-      @exportSvg="handleExportSvg"
-      @importJson="handleImportJson($event)"
-      @clearCanvas="clearCanvas"
-      @canvasManage="canvasManageVisible = true"
-    />
+    <DrawTool />
     
     <!-- 画布逻辑 -->
     <div id="draw-container">
@@ -26,77 +18,16 @@
     <ElementDetailPanel v-model:visible="elementDetailPanelVisible" />
     <!-- <el-button type="primary" class="dynamic-demo-btn" @click="handleDynamicClick">动态演示测试</el-button> -->
     <!-- <el-button type="primary" class="dynamic-demo-btn" @click="handleZoomIn">放大2倍</el-button> -->
-    <Dialog
-      v-model:visible="saveDialogVisible"
-      title="保存为图片"
-      width="500"
-      @confirm="handleSaveSvgWithBg"
-    >
-      <div class="fc" style="align-items: center; gap: 15px;">
-        <p>当前默认保存为png格式图片</p>
-        <!-- <el-checkbox v-model="saveWithBgImage" label="带底图保存" size="large" /> -->
-        <el-form :model="saveSetting" label-width="auto" label-position="right">
-          <el-form-item label="图片名称" prop="imageName" required>
-            <el-input v-model="saveSetting.imageName" placeholder="请输入图片名称" style="width: 200px;" />
-          </el-form-item>
-          <el-form-item label="背景" prop="bgType">
-            <el-select v-model="saveSetting.bgType" placeholder="请选择背景" style="width: 200px;">
-              <el-option label="透明" value="none" />
-              <el-option label="白色" value="white" />
-              <el-option label="使用底图" value="bgImg" v-if="svg && svg.bgSetting.type === 'local'" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="使用画布" prop="canvasEdge">
-            <el-select v-model="canvasEdgeId" placeholder="请选择画布边缘" style="width: 200px;">
-              <el-option label="不使用" value="no" />
-              <el-option v-for="(canvas) in svg.canvasList" :key="canvas.id" :label="canvas.name" :value="canvas.id" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="图片内边距" prop="padding">
-            <el-input v-model="saveSetting.padding" placeholder="请输入图片内边距" style="width: 200px;" />
-          </el-form-item>
-          <el-form-item label="水印文字">
-            <el-input v-model="saveSetting.watermarkText" placeholder="需要的话请输入水印文字" style="width: 200px;" />
-          </el-form-item>
-          <el-form-item label="水印位置" v-if="saveSetting.watermarkText">
-            <el-select v-model="saveSetting.watermarkPosition" placeholder="请选择水印位置" style="width: 200px;">
-              <el-option label="左下角" value="bottom-left" />
-              <el-option label="右下角" value="bottom-right" />
-              <el-option label="左上角" value="top-left" />
-              <el-option label="右上角" value="top-right" />
-            </el-select>
-          </el-form-item>
-        </el-form>
-      </div>
-    </Dialog>
-
-    <Dialog
-      v-model:visible="canvasManageVisible"
-      title="画布管理"
-      width="500"
-      :withButton="false"
-    >
-      <div class="fc" style="align-items: center; gap: 15px;">
-        <div v-if="svg.canvasList.length === 0">
-          <el-empty description="暂无画布" />
-        </div>
-        <div v-for="canvas in svg.canvasList" :key="canvas.id" class="fr" style="align-items: center; gap: 15px;">
-          <el-input v-model="canvas.name" placeholder="请输入画布名称" style="width: 200px;" />
-          <el-checkbox v-model="canvas.visible" label="可见" size="large" @change="(val) => canvas.setVisible(val)" />
-          <el-checkbox v-model="canvas.locked" label="锁定" size="large" @change="(val) => canvas.setLocked(val)" />
-          <el-button type="danger" size="small" @click="canvas.delete()">删除</el-button>
-        </div>
-      </div>
-    </Dialog>
+    <RewardAndContact />
   </div>
   
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, watch, computed, onUpdated } from 'vue'
+import { ref, onMounted, reactive, watch, computed, onUpdated, toRaw } from 'vue'
 import DrawTool from '@/components/DrawTool.vue'
-import Dialog from '@/components/Dialog.vue'
 import ElementDetailPanel from '@/components/ElementDetailPanel.vue'
+import RewardAndContact from '@/components/RewardAndContact.vue'
 
 import { ElMessage, ElMessageBox } from 'element-plus'
 import moment from 'moment'
@@ -133,8 +64,10 @@ import Rect from '@/model/rect.js'
 
 // 绘图相关的全局变量
 import { useDrawStore } from '@/store/drawStore.js'
+import { useLineStore } from '@/store/lineStore.js'
 import { storeToRefs } from 'pinia'
 const drawStore = useDrawStore()
+const lineStore = useLineStore()
 const { 
   tool, 
   drawLine,
@@ -147,15 +80,12 @@ const {
   selectedElement,
   zoomInfo,
   saveWithBgImage,
-  extendMode,
   drawRect
 } = storeToRefs(drawStore)
 
 // 同时监听extendMode和drawLine，当extendMode为true且drawLine为null时，设置所有线的延伸节点
-watch(() => [extendMode.value, drawLine.value], (newVal) => {
-  console.log(`[watch] extendMode`, extendMode.value, `drawLine`, drawLine.value)
+watch(() => [lineSetting.value.isExtendMode, drawLine.value], (newVal) => {
   if (newVal[0] && !newVal[1]) {
-    console.log(`setExtendNode`)
     Object.values(svg.lineMap).forEach(line => {
       line.setExtendNode()
     })
@@ -168,7 +98,7 @@ watch(() => [extendMode.value, drawLine.value], (newVal) => {
 watch(() => tool.value, (newVal) => {
   if (newVal !== 'line' && newVal !== 'edge') {
     d3.selectAll('.extend-node').remove()
-    extendMode.value = false
+    lineSetting.value.isExtendMode = false
   }
 })
 
@@ -184,8 +114,9 @@ function handleDynamicClick () {
 // })
 
 const elementDetailPanelVisible = ref(false)
-const saveDialogVisible = ref(false)
 const canvasManageVisible = ref(false)
+const styleManageVisible = ref(false)
+
 const imageName = ref('')
 
 watch(() => selectedElement.value, (newVal) => {
@@ -196,54 +127,19 @@ watch(() => selectedElement.value, (newVal) => {
   }
 })
 
-function handleExportSvg () {
-  const drawPartG = svg.children['global_g'].children['draw_part']
-  exportJsonByInstance(drawPartG, svg.bgSetting)
-}
+// function handleExportSvg () {
+//   const drawPartG = svg.children['global_g'].children['draw_part']
+//   exportJsonByInstance(drawPartG, svg.bgSetting)
+// }
 
 function handleImportJson (data) {
   if (!svg) return
   importJson(data, svg.children['global_g'])
-
-  // TODO: 缩放地图到合适大小
-  // const { width, height } = svg.children['global_g'].children['draw_part'].node.node().getBBox()
-  // console.log(width, height)
-  // if (width < window.innerWidth) return
-  // const scale = window.innerWidth / width
-  // svg.modifyZoom(scale)
 }
 
 function handleUploadBackground (url) {
   if (!url || !svg) return
   svg.loadBackground(url)
-}
-
-const canvasEdgeId = ref('no')
-const saveSetting = reactive({
-  imageName: '',
-  watermarkText: '',
-  watermarkPosition: 'bottom-left',
-  bgType: 'white',
-  bgUrl: '',
-  padding: 100,
-  canvasEdge: null,
-})
-function handleSaveSvgWithBg () {
-  if (!saveSetting.imageName) {
-    ElMessage.error('请输入图片名称')
-    return
-  }
-  if (saveSetting.bgType === 'bgImg') {
-    saveSetting.bgUrl = svg.bgSetting.url
-  }
-  if (canvasEdgeId.value !== 'no') {
-    saveSetting.canvasEdge = svg.canvasList.find(canvas => canvas.id === canvasEdgeId.value)
-  } else {
-    saveSetting.canvasEdge = null
-  }
-  const drawPartG = svg.children['global_g'].children['draw_part'].node
-  saveSvgWithBg(drawPartG, saveSetting)
-  // downloadSvgAsImage(svg.node.node())
 }
 
 const mapType = { 'line135': 'from135', 'line90': 'from90' }
@@ -284,73 +180,157 @@ function handleSvgClick (event, pos) {
 
   // 绘制路径
   if (tool.value.includes('line') || tool.value === 'edge') {
-    let realPos = { ...pos }
+    // let realPos = { ...pos }
 
-    if (event.extend) return
+    // if (event.extend) return
 
-    if (extendMode.value && !drawLine.value) return
+    // if (extendMode.value && !drawLine.value) return
 
-    // 闭合路径
-    if (drawLine.value && !event.extend && getDistance(realPos, drawLine.value.joints[0]) < 5) {
-      drawLine.value.closeLine()
-      if (pressedKeys.value.s && !drawLine.value.joints[0].relatedStation) {
-        drawLine.value.addStationInLine(drawLine.value.joints[0])
-      }
-      drawLine.value = null
-      return
+    // // 闭合路径
+    // if (drawLine.value && !event.extend && getDistance(realPos, drawLine.value.joints[0]) < 5) {
+    //   drawLine.value.closeLine()
+    //   if (pressedKeys.value.s && !drawLine.value.joints[0].relatedStation) {
+    //     drawLine.value.addStationInLine(drawLine.value.joints[0])
+    //   }
+    //   drawLine.value = null
+    //   return
+    // }
+
+    // // 连接到已存在的站点或新增站点，记录相关站点
+    // let jointRelatedStation = null
+    // if (tool.value.includes('line')) {
+    //   if (event.from && event.from.ele === 'station') {
+    //     realPos.x = event.from.eleObj.points[0].x
+    //     realPos.y = event.from.eleObj.points[0].y
+    //     jointRelatedStation = event.from.eleObj
+    //     if (jointRelatedStation.name === lineStore.presetStationNames[0]) {
+    //       lineStore.presetStationNames.shift()
+    //     }
+    //   }
+    //   else if (pressedKeys.value.s) {
+    //     // const stationNames = lineStore.presetStationNames.shift()
+    //     // const stationG = svg.children['global_g'].children['draw_part'].children['global_station_g']
+    //     // jointRelatedStation = new Station(stationG, {
+    //     //   points: [pos],
+    //     //   name: stationNames || '车站名',
+    //     //   style: stationSetting.value
+    //     // })
+    //     jointRelatedStation = addStationWhileDrawLine(pos)
+    //   }
+    // }
+
+    // // 开始绘制路径
+    // if (!drawLine.value) {
+    //   const lineG = svg.children['global_g'].children['draw_part'].children['global_line_g']
+    //   const edgeG = svg.children['global_g'].children['draw_part'].children['global_edge_g']
+    //   const curJointInfo = {
+    //     ...realPos,
+    //     type: 'start',
+    //   }
+    //   if (jointRelatedStation) {
+    //     curJointInfo.relatedStationId = jointRelatedStation.id
+    //   }
+    //   drawLine.value = new Line(tool.value.includes('line') ? lineG : edgeG, {
+    //     joints: [curJointInfo],
+    //     style: lineSetting.value
+    //   })
+    // } else {
+    //   const curJointInfo = {
+    //     ...realPos, 
+    //     type: mapType[tool.value] || 'joint', 
+    //     flag: !pressedKeys.value.Shift,
+    //   }
+    //   if (jointRelatedStation) {
+    //     curJointInfo.relatedStationId = jointRelatedStation.id
+    //   }
+    //   drawLine.value.addJoint(curJointInfo)
+    // }
+
+    // if (jointRelatedStation) {
+    //   jointRelatedStation.appendPoint({
+    //     ...realPos,
+    //     relatedLineId: drawLine.value.id
+    //   })
+    // }
+    drawLineJoint(event, pos, pressedKeys.value.s)
+  }
+}
+
+function addStationWhileDrawLine (pos) {
+  const stationNames = lineStore.presetStationNames.shift()
+  const stationG = svg.children['global_g'].children['draw_part'].children['global_station_g']
+  const jointRelatedStation = new Station(stationG, {
+    points: [pos],
+    name: stationNames || '车站名',
+    style: stationSetting.value
+  })
+  return jointRelatedStation
+}
+
+function drawLineJoint(event, pos, withNewStation = false) {
+  let realPos = { ...pos }
+
+  if (event.extend) return
+
+  if (lineSetting.value.isExtendMode && !drawLine.value) return
+
+  // 闭合路径
+  if (drawLine.value && !event.extend && getDistance(realPos, drawLine.value.joints[0]) < 5) {
+    drawLine.value.closeLine()
+    if (pressedKeys.value.s && !drawLine.value.joints[0].relatedStation) {
+      drawLine.value.addStationInLine(drawLine.value.joints[0])
     }
+    drawLine.value = null
+    return
+  }
 
-    // 连接到已存在的站点或新增站点，记录相关站点
-    let jointRelatedStation = null
-    if (tool.value.includes('line')) {
-      if (event.from && event.from.ele === 'station') {
-        realPos.x = event.from.eleObj.points[0].x
-        realPos.y = event.from.eleObj.points[0].y
-        jointRelatedStation = event.from.eleObj
-      }
-      if (pressedKeys.value.s) {
-        const stationG = svg.children['global_g'].children['draw_part'].children['global_station_g']
-        jointRelatedStation = new Station(stationG, {
-          points: [pos],
-          style: stationSetting.value
-        })
+  // 连接到已存在的站点或新增站点，记录相关站点
+  let jointRelatedStation = null
+  if (lineSetting.value.usage === 'line') {
+    if (event.from && event.from.ele === 'station') {
+      realPos.x = event.from.eleObj.points[0].x
+      realPos.y = event.from.eleObj.points[0].y
+      jointRelatedStation = event.from.eleObj
+      if (jointRelatedStation.name === lineStore.presetStationNames[0]) {
+        lineStore.presetStationNames.shift()
       }
     }
-
-    // 开始绘制路径
-    if (!drawLine.value) {
-      const lineG = svg.children['global_g'].children['draw_part'].children['global_line_g']
-      const edgeG = svg.children['global_g'].children['draw_part'].children['global_edge_g']
-      const curJointInfo = {
-        ...realPos,
-        type: 'start',
-      }
-      if (jointRelatedStation) {
-        curJointInfo.relatedStationId = jointRelatedStation.id
-      }
-      drawLine.value = new Line(tool.value.includes('line') ? lineG : edgeG, {
-        joints: [curJointInfo],
-        style: lineSetting.value
-      })
-    } else {
-      const curJointInfo = {
-        ...realPos, 
-        type: mapType[tool.value] || (lineSetting.value.isRoundCorner ? 'round' : 'joint'), 
-        flag: !pressedKeys.value.Shift,
-        r: lineSetting.value.isRoundCorner ? lineSetting.value.roundCornerRadius : 0,
-      }
-      if (jointRelatedStation) {
-        curJointInfo.relatedStationId = jointRelatedStation.id
-      }
-      drawLine.value.addJoint(curJointInfo)
+    else if (withNewStation) {
+      jointRelatedStation = addStationWhileDrawLine(pos)
     }
+  }
 
+  // 开始绘制路径
+  if (!drawLine.value) {
+    const pG = svg.children['global_g'].children['draw_part'].children[`global_${lineSetting.value.usage}_g`]
+    const curJointInfo = {
+      ...realPos,
+      type: 'start',
+    }
     if (jointRelatedStation) {
-      jointRelatedStation.appendPoint({
-        ...realPos,
-        relatedLineId: drawLine.value.id
-      })
+      curJointInfo.relatedStationId = jointRelatedStation.id
     }
+    drawLine.value = new Line(pG, {
+      joints: [curJointInfo],
+      style: lineSetting.value
+    })
+  } else {
+    const curJointInfo = {
+      ...realPos, 
+      type: mapType[tool.value] || 'joint', 
+      flag: !pressedKeys.value.Shift,
+    }
+    if (jointRelatedStation) {
+      curJointInfo.relatedStationId = jointRelatedStation.id
+    }
+    drawLine.value.addJoint(curJointInfo)
+  }
+
+  if (jointRelatedStation) {
+    jointRelatedStation.appendPoint({
+      ...realPos,
+      relatedLineId: drawLine.value.id
+    })
   }
 }
 
@@ -368,9 +348,8 @@ watch(() => [mousePosition.value, pressedKeys.value.Shift], (newPos) => {
     }
     drawLine.value.preview({ 
       ...mousePosition.value, 
-      type: mapType[tool.value] || (lineSetting.value.isRoundCorner ? 'round' : 'joint'), 
+      type: mapType[tool.value] || 'joint', 
       flag: !pressedKeys.value.Shift,
-      r: lineSetting.value.isRoundCorner ? lineSetting.value.roundCornerRadius : 0,
     })
   }
 })
@@ -385,19 +364,7 @@ const handleBeforeUnload = (e) => {
     return '请确保绘图导出本地，否则会丢失，确定要离开吗？';
 };
 
-function clearCanvas () {
-  svg.children['global_g'].children['draw_part'].children['global_line_g'].node.selectAll('*').remove()
-  svg.children['global_g'].children['draw_part'].children['global_line_g'].children = {}
-  svg.children['global_g'].children['draw_part'].children['global_station_g'].node.selectAll('*').remove()
-  svg.children['global_g'].children['draw_part'].children['global_station_g'].children = {}
-  // 清除文本
-  svg.children['global_g'].children['draw_part'].children['global_text_g'].node.selectAll('*').remove()
-  svg.children['global_g'].children['draw_part'].children['global_text_g'].children = {}
-  // 清除选中元素
-  selectedElement.value = null
-  // 背景图url设置为空
-  // svg.loadBackground('')
-}
+
 
 const keepOnly = ref('')
 function filterElements () {
@@ -492,13 +459,16 @@ function handleZoomIn () {
   })
 }
 
-let svg = null
-let name = ''
-let drawingRect = ref(null)
-onMounted(async () => {  
+function initSvg() {
   svg = reactive(new Svg('svg-container'))
+  drawStore.initSvg(svg)
   svg.addEventListeners({
     click: handleSvgClick,
+    contextmenu: (e, pos) => {
+      if (tool.value.includes('line') || tool.value === 'edge') {
+        drawLineJoint(e, pos, true)
+      }
+    },
     mousemove: (event, pos) => {
       mousePosition.value = pos
       if (drawingRect.value) {
@@ -506,7 +476,6 @@ onMounted(async () => {
       }
     },
     mousedown: (event, pos) => {
-      console.log(drawRect.value)
       if (drawRect.value) {
         drawingRect.value = new Rect(svg.children['global_g'].children['global_rect_g'], pos)
         return
@@ -537,11 +506,40 @@ onMounted(async () => {
       }
     },
   })
+}
+
+function locateTarget () {  // 先找到边
+  const edge = svg.children['global_g'].children['draw_part']
+  if (!edge) return
+  const { x, y, width, height } = edge.node.node().getBBox()
+  const k = Math.min( window.innerWidth / (width + 100), window.innerHeight / (height + 100))
+  const dx = (-x - width / 2) * k  + window.innerWidth / 2
+  const dy = (-y - height / 2) * k  + window.innerHeight / 2
+  svg.tempZoomCenter = { 
+    x: (x + width / 2) + ((-x - width / 2)  + window.innerWidth / 2) / (1 - k), 
+    y: (y + height / 2) + ((-y - height / 2)  + window.innerHeight / 2) / (1 - k)
+  }
+
+  const testTranslate = d3.zoomTransform(svg.node.node()).translate(dx, dy).scale(k)
+  svg.node.call(svg.zoom.transform, testTranslate)
+}
+
+let svg = null
+let name = ''
+let drawingRect = ref(null)
+onMounted(async () => {  
+  initSvg()
+
+  
 
   name = route.params.name || 'new'
   if (name !== 'new') {
     const module = await import(`@/data/gallery/${name}.js`);
     handleImportJson(module.default);
+    document.title = `${name}`
+    locateTarget()
+  } else {
+    document.title = '新建'
   }
 
   window.addEventListener('keydown', (e) => {
@@ -557,7 +555,8 @@ onMounted(async () => {
     if (e.key === ' ') {
       svg.node.attr('cursor', 'grab')
     } else if (e.key === 'Enter') {
-      drawLine.value.removePreview()
+      console.log('hello?')
+      drawLine.value && drawLine.value.removePreview()
       drawLine.value = null
     } else if (e.key === 'Delete') {
       if (selectedElement.value) {
@@ -634,13 +633,6 @@ onMounted(async () => {
     background-color: rgba(255, 255, 255, 0.8);
     border-radius: 4px;
   }
-}
-
-.draw-tool {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 20;
 }
 
 .dynamic-demo-btn {

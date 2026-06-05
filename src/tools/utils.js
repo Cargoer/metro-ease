@@ -65,3 +65,47 @@ export function addContextMenu(node, options) {
     })
   })
 }
+
+/**
+ * 根据背景色自动计算最佳文字颜色（黑/白）
+ * @param {string} color - 背景色（支持 hex / rgb / rgba 格式）
+ * @returns {string} 'black' 或 'white'
+ */
+export function getContrastTextColor(color) {
+  if (color === 'none' || !color) return 'black'
+  // 1. 移除所有空格
+  color = color.trim().replace(/\s+/g, '');
+
+  let r, g, b;
+
+  // 2. 处理 HEX 格式（#fff / #ffffff）→ 替换 substr 为 slice
+  if (color.startsWith('#')) {
+    color = color.slice(1);
+    // 3位 hex 转 6位
+    if (color.length === 3) {
+      color = color[0] + color[0] + color[1] + color[1] + color[2] + color[2];
+    }
+    // ✅ 替换废弃 substr → 使用 slice
+    r = parseInt(color.slice(0, 2), 16);
+    g = parseInt(color.slice(2, 4), 16);
+    b = parseInt(color.slice(4, 6), 16);
+  }
+  // 3. 处理 RGB / RGBA 格式
+  else if (color.startsWith('rgb')) {
+    const values = color.match(/\d+/g).map(Number);
+    r = values[0];
+    g = values[1];
+    b = values[2];
+  }
+  // 非法颜色默认返回白色
+  else {
+    return 'white';
+  }
+
+  // 4. 标准亮度公式
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+
+  // 5. 判断颜色
+  // return brightness > 128 ? 'black' : 'white';
+  return brightness > 160 ? 'black' : 'white';
+}

@@ -23,7 +23,6 @@ function initStore () {
 
 export default class Station {
   constructor (parent, settings) {
-    console.log('Station', settings.name)
     if (!drawStore) {
       initStore()
     }
@@ -41,9 +40,6 @@ export default class Station {
       radius: settings.style.radius || 8,
       // 渐显
       visibleWithTransition: settings.visibleWithTransition || false,
-    }
-    this.nameStyle = {
-      fontSize: settings.nameStyle?.fontSize || 12,
     }
     // 更多信息
     this.info = settings.info || {}
@@ -67,7 +63,12 @@ export default class Station {
           const posByLatLng = this.root.mapboxObj.project(point.latLng)
           point.x = posByLatLng.x
           point.y = posByLatLng.y
-        } 
+        }
+        if (point.relatedLineId) {
+          if (!this.root.lineMap[point.relatedLineId]) {
+            delete point.relatedLineId
+          }
+        }
       })
     }
 
@@ -81,6 +82,17 @@ export default class Station {
     this.selectedIndicator = null
 
     this.generateNode()
+  }
+
+  get displayStrokeColor () {
+    if (this.points.length === 1) {
+      // if (this.points[0].relatedLineId) {
+      //   this.style.stroke = this.root.lineMap[this.points[0].relatedLineId]?.style.stroke
+      // }
+      return this.style.stroke
+    } else {
+      return '#444'
+    }
   }
 
   // 浓缩为对象
@@ -135,10 +147,9 @@ export default class Station {
 
   refreshStyle () {
     const d = getCircleConvexHullPath(this.points, this.style.radius || 8)
-    console.log('d', d)
     if (!this.shape) this.shape = this.g.append("path")
     this.shape
-      .attr('stroke', this.points.length > 1 ? '#444' : this.style.stroke)
+      .attr('stroke', this.displayStrokeColor)
       .attr('stroke-width', this.style.strokeWidth)
       .attr('fill', this.style.fill)
       .attr('d', d)
@@ -232,9 +243,7 @@ export default class Station {
   }
 
   modifyPoints (match, newPointInfo) {
-    console.log('modifyPoints', match, newPointInfo)
-    const index = this.points.findIndex(point => point[match.key] === match.value.id)
-    console.log('index', index)
+    const index = this.points.findIndex(point => point[match.key] === match.value)
     if (index !== -1) {
       Object.assign(this.points[index], newPointInfo)
       this.refreshStyle()
@@ -242,11 +251,11 @@ export default class Station {
   }
 
   removePoints (match) {
-    // if (this.points.length === 1) {
-    //   this.points[0].relatedLine = null
-    //   return
-    // }
-    const index = this.points.findIndex(point => point[match.key]?.id === match.value.id)
+    if (this.points.length === 1) {
+      this.points[0].relatedLineId = null
+      return
+    }
+    const index = this.points.findIndex(point => point[match.key] === match.value)
     if (index !== -1) {
       this.points.splice(index, 1)
       this.refreshStyle()
@@ -301,8 +310,10 @@ export default class Station {
     if (selectedElement.value === this) {
       this.setSelect(false)
     }
+    this.lines.forEach(line => line.relatedStationDelete(this.id))
     this.g.remove()
     delete this.parent.children[this.id]
+    delete this.root.stationMap[this.id]
   }
 
   get lines () {

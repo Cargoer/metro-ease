@@ -8,7 +8,6 @@ const line = {
     fill: '',
     isDashed: true,
     dashArray: '5, 5',
-    isRoundCorner: false,
     roundCornerRadius: 10,
   },
   info: {
