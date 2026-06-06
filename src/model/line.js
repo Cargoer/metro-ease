@@ -435,10 +435,10 @@ export default class Line {
           value: this.id
         }, pos)
       }
-      if (index === this.joints.length - 1) {
+      if (index === this.joints.length - 1 && this.style.isClosed) {
         this.joints[0].x = joint.x
         this.joints[0].y = joint.y
-      } else if (index === 0) {
+      } else if (index === 0 && this.style.isClosed) {
         this.joints[this.joints.length - 1].x = joint.x
         this.joints[this.joints.length - 1].y = joint.y
       }
