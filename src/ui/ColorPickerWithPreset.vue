@@ -28,7 +28,7 @@
             </div>
           </div>
           <p>部分城市轨道交通线路颜色预设</p>
-          <el-select v-model="selectedCityForColor" placeholder="请选择城市" style="width: 150px;">
+          <el-select v-model="selectedCityForColor" placeholder="请选择城市" style="width: 150px;" filterable>
             <el-option v-for="item in Object.keys(cityMetroColor)" :key="item" :label="item" :value="item" />
           </el-select>
           <div class="fr" style="gap: 8px; width: 200px; flex-wrap: wrap;">

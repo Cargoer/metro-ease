@@ -10,7 +10,7 @@
 </template>
 
 <script setup>
-import { defineProps, onMounted, watch, useSlots, ref, nextTick } from 'vue'
+import { onMounted, watch, useSlots, ref, nextTick } from 'vue'
 import { generateUniqueId} from '@/tools/utils'
 
 const cid = 'column-' + generateUniqueId()
@@ -20,7 +20,6 @@ const slotRef = ref(null)
 const slotKey = ref(0)
 defineExpose({
   $forceUpdate: () => {
-    console.log('forceUpdate')
     slotKey.value++
   }
 })

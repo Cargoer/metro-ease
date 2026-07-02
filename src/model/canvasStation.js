@@ -1,4 +1,5 @@
 import * as d3 from "d3"
+import * as fabric from 'fabric'
 import { 
   getRectByPoints, 
   getDistance
@@ -26,15 +27,15 @@ function initStore () {
 }
 
 export default class Station {
-  constructor (parent, settings) {
+  constructor (root, settings) {
+    console.log('车站开始初始化', settings)
     if (!drawStore) {
       initStore()
     }
     // 父元素
-    this.parent = parent
+    this.root = root
+    this.canvas = root.canvas
     this.id = settings.id || generateUniqueId('station')
-    parent.children[this.id] = this
-    this.root = parent.root || null
     this.root.stationMap[this.id] = this
 
     this.style = {
@@ -52,48 +53,62 @@ export default class Station {
     // 车站名称
     this.name = settings.name || '车站名'
     this.namePos = settings.namePos
-    this.nameFontSize = settings.nameFontSize || 12
     if (settings.nameLatLng && this.root.bgSetting.type === 'mapbox') {
       this.namePos = this.root.mapboxObj.project(settings.nameLatLng)
     }
     this.englishName = 'engName'
     this.englishNamePos = settings.englishNamePos
-    this.nameMover = null
+
+    this.nameStyle = {
+      fill: '#000',
+      fontSize: settings.nameFontSize || 12
+    }
+
+    this.selectStyle = {
+      borderColor: '#f53f3f',        // 选框红色
+      borderDashArray: [5, 3],       // 虚线边框
+      borderScaleFactor: 2,          // 边框加粗
+      padding: 8,                    // 外留白8px
+      cornerColor: '#fff',           // 控制点白色填充
+      cornerStrokeColor: '#f53f3f',  // 控制点描边红
+      cornerSize: 10,
+      cornerStyle: 'circle',         // 圆形控制点
+      transparentCorners: false,     // 实心圆点
+      hasRotatingPoint: false,
+    }
     
     // 形状控制
     this.points = settings.points || []
-    if (this.points.length && this.root.bgSetting.type === 'mapbox') {
-      this.points.forEach(point => {
-        if (point.latLng) {
-          const posByLatLng = this.root.mapboxObj.project(point.latLng)
-          point.x = Number(posByLatLng.x.toFixed(0))
-          point.y = Number(posByLatLng.y.toFixed(0))
-        }
-        if (point.relatedLineId) {
-          if (!this.root.lineMap[point.relatedLineId]) {
-            delete point.relatedLineId
-          }
-        }
-      })
-    }
-
-    this.mover = null
+    // if (this.points.length && this.root.bgSetting.type === 'mapbox') {
+    //   this.points.forEach(point => {
+    //     if (point.latLng) {
+    //       const posByLatLng = this.root.mapboxObj.project(point.latLng)
+    //       point.x = Number(posByLatLng.x.toFixed(0))
+    //       point.y = Number(posByLatLng.y.toFixed(0))
+    //     }
+    //     if (point.relatedLineId) {
+    //       if (!this.root.lineMap[point.relatedLineId]) {
+    //         delete point.relatedLineId
+    //       }
+    //     }
+    //   })
+    // }
 
     // 相关节点
-    this.g = null
-    this.shapeG = null
     this.shape = null
     this.text = null
-    this.selectedIndicator = null
+
+    // 历史操作
+    this.history = []
 
     this.generateNode()
   }
 
   get displayStrokeColor () {
     if (this.points.length === 1) {
-      // if (this.points[0].relatedLineId) {
-      //   this.style.stroke = this.root.lineMap[this.points[0].relatedLineId]?.style.stroke
-      // }
+      if (this.points[0].relatedLineId) {
+        return this.root.lineMap[this.points[0].relatedLineId]?.style.stroke
+      }
       return this.style.stroke
     } else {
       return '#444'
@@ -141,134 +156,107 @@ export default class Station {
         selectedElement.value.setSelect(false)
       }
       selectedElement.value = this
-      this.selectedIndicator = this.g.append('rect')
-        .attr('x', this.shape.node().getBBox().x - 2)
-        .attr('y', this.shape.node().getBBox().y - 2)
-        .attr('width', this.shape.node().getBBox().width + 4)
-        .attr('height', this.shape.node().getBBox().height + 4)
-        .attr('stroke', '#f34718')
-        .attr('stroke-width', 2)
-        .attr('fill', 'none')
     } else {
       selectedElement.value = null
-      this.selectedIndicator.remove()
-      this.selectedIndicator = null
     }
+  }
+
+  get pathD () {
+    return getCircleConvexHullPath(this.points, this.style.radius || 8)
+  }
+
+  generateNode () {
+    console.log('车站节点创建', this.points)
+
+    // 车站节点路径
+    const d = getCircleConvexHullPath(this.points, this.style.radius || 8)
+    console.log('车站节点路径', d)
+    this.shape = new fabric.Path(d, {
+      selectable: true,
+      hasControls: true,
+      hasBorders: true,
+      id: this.id,
+      // linkedId: this.id + '-name',
+      fill: this.style.fill,
+      stroke: this.style.stroke,
+      strokeWidth: this.style.strokeWidth,
+    })
+    this.canvas.add(this.shape)
+
+    // 名称文本
+    if (!this.namePos) {
+      const shapeCenter = this.shape.getCenterPoint()
+      this.namePos = { left: shapeCenter.x + this.style.radius + 20, top: shapeCenter.y + 5 }
+    }
+    this.text = new fabric.IText(this.name, {
+      selectable: true,
+      hasControls: true,
+      hasBorders: true,
+      editable: true,
+      id: this.id + '-name',
+      // linkedId: this.id,
+      ...this.namePos,
+    })
+    this.canvas.add(this.text)
+
+    this.refreshStyle()
+    this.addEventListener()
   }
 
   refreshStyle () {
+    console.log('车站节点样式刷新', this.style)
     const d = getCircleConvexHullPath(this.points, this.style.radius || 8)
-    if (!this.shape) {
-      this.shape = this.g.append("path")
-      addContextMenu(this.shape, [
-        {
-          title: '删除 (delete)',
-          action: () => {
-            this.delete()
-          }
-        },
-        {
-          title: '隐藏',
-          action: () => {
-            this.hide()
-          }
-        },
-        {
-          title: '连接点',
-          action: () => {
-            this.connectPoints()
-          }
-        }
-      ])
-    }
-    this.shape
-      .attr('stroke', this.displayStrokeColor)
-      .attr('stroke-width', this.style.strokeWidth)
-      .attr('fill', this.style.fill)
-      .attr('d', d)
+    
+    this.shape.set({
+      fill: this.style.fill,
+      stroke: this.style.stroke,
+      strokeWidth: this.style.strokeWidth,
+    })
+    this.shape.set('d', d)
+    this.style.hidden ? this.hide() : this.show()
 
-    // 渐显，用于动态演示
-    if (this.style.visibleWithTransition) {
-      this.shape
-        .style('opacity', 0)
-        .transition()
-        .duration(200)
-        .ease(d3.easeLinear) // 设置为匀速
-        .style('opacity', 1)
-      this.text
-        .style('opacity', 0)
-        .transition()
-        .duration(200)
-        .ease(d3.easeLinear) // 设置为匀速
-        .style('opacity', 1)
-    }
+    this.text.set(this.nameStyle)
 
-    this.refreshName()
-
-    // 隐藏车站
-    if (this.style.hidden) {
-      this.hide()
-    } else {
-      this.show()
-    }
+    this.canvas.requestRenderAll()
+    this.history.push({
+      type: 'refreshStyle',
+      style: this.style,
+      nameStyle: this.nameStyle,
+    })
   }
 
   refreshName (name) {
-    if (!this.text) {
-      this.text = this.g.append("text")
-        .text(this.name)
-        .attr('font-size', this.nameFontSize)
-        // .attr('fill', this.style.stroke)
-        .attr('style', 'user-select: none;')
-        .on('dblclick', async (e) => {
-          e.stopPropagation()
-          const name = await messageBoxInput('更改车站名称', '输入更改后的车站名称后点击确认', this.name)
-          this.modifyName(name)
-        })
-    }
     this.name = name || this.name 
-    this.text.text(this.name || this.name)
-    if (!this.namePos) {
-      const { x, y, width, height } = this.shape.node().getBBox()
-      this.namePos = { x: x + width + 5, y: y + height }
-    }
-    this.text.attr('x', this.namePos.x).attr('y', this.namePos.y).attr('font-size', this.nameFontSize)
+    this.text.set('text', this.name)
+    this.text.set(this.namePos)
+    this.canvas.requestRenderAll()
   }
 
   hide () {
     this.style.hidden = true
-    this.shape.style('opacity', 0)
-    this.text.style('opacity', 0)
+    this.shape.set({'opacity': 0})
+    this.text.set({'opacity': 0})
+    this.canvas.renderAll()
   }
 
   show () {
     this.style.hidden = false
-    this.shape.style('opacity', 1)
-    this.text.style('opacity', 1)
+    this.shape.set({'opacity': 1})
+    this.text.set({'opacity': 1})
+    this.canvas.renderAll()
   }
 
   get center () {
-    const { x, y, width, height } = this.shape.node().getBBox()
-    return { x: x + width / 2, y: y + height / 2 }
+    return this.shape.getCenterPoint()
   }
 
   connectPoints () {
     // 第一步，获取附近的所有点
     const distanceThreshold = this.style.radius * 3 || 30
     const nearbyStations = Object.values(this.root.stationMap).filter(station => station.id !== this.id && getDistance(this.center, station.center) <= distanceThreshold)
-    const allJoints = 
-      Object.values(this.root.lineMap)
-      .filter(line => line.joints.every(joint => joint.relatedStationId !== this.id))
-      .flatMap(line => line.joints)
-    const nearbyJoints = allJoints.filter(joint => {
-      const isNearby =  getDistance(this.center, joint) <= distanceThreshold
-      // const unrelated = joint.relatedStationId !== this.id
-      return isNearby // && unrelated
-    })
-    console.log(nearbyJoints)
 
-    if (nearbyStations.length === 0 && nearbyJoints.length === 0) {
-      ElMessage.warning('没有附近可合并车站或节点')
+    if (nearbyStations.length === 0) {
+      ElMessage.warning('没有附近可合并车站')
       return
     }
 
@@ -296,88 +284,59 @@ export default class Station {
           })
           station.delete()
           this.parent.node.selectAll('.nearby-station').remove()
-          this.parent.node.selectAll('.nearby-joint').remove()
         })
     })
-
-    nearbyJoints.forEach(joint => {
-      this.parent.node.append('circle')
-        .attr('cx', joint.x)
-        .attr('cy', joint.y)
-        .attr('r', 8)
-        .attr('stroke', 'red')
-        .attr('stroke-width', 2)
-        .attr('fill', 'red')
-        .attr("filter", "url(#d3-shadow)")   // 应用阴影滤镜
-        .attr('class', 'nearby-joint')
-        .on('click', (e) => { // 点击事件
-          e.stopPropagation()
-          if (this.points.length === 1 && !this.points[0].relatedLineId) {
-            this.points[0].x = joint.x
-            this.points[0].y = joint.y
-            this.points[0].relatedLineId = joint.relatedLineId
-            this.refreshStyle()
-          } else {
-            this.appendPoint({
-              x: joint.x,
-              y: joint.y,
-              relatedLineId: joint.relatedLineId,
-            })
-          }
-          joint.relatedStationId = this.id
-          this.parent.node.selectAll('.nearby-station').remove()
-          this.parent.node.selectAll('.nearby-joint').remove()
-        })
-    })
-  }
-
-  generateNode () {
-    this.g = this.parent.node.append("g")
-    this.refreshStyle()
-    // this.refreshName()
-    this.addEventListener()
   }
 
   addEventListener () {
-    this.shape
-      .on('click', (e) => { // 点击事件
-        e.from = {
-          ele: 'station',
-          eleObj: this,
-        }
-        if (tool.value === 'select') {
-          this.setSelect(true)
-        }
+    let originalPoints = [...this.points]
+    let originalNamePos = {...this.namePos}
+
+    this.shape.on('selected', (e) => {
+      this.setSelect(true)
+      originalPoints = [...this.points]
+      originalNamePos = {...this.namePos}
+    })
+    this.shape.on('deselected', (e) => {
+      this.setSelect(false)
+    })
+
+    this.shape.on('moving', (opt) => {
+      // 同步移动所有车站相关及关联元素
+      const { transform } = opt
+      const { original, target } = transform
+      const dx = target.left - original.left
+      const dy = target.top - original.top
+
+      // 核心点的同步
+      this.points.forEach((point, index) => {
+        point.x = originalPoints[index].x + dx
+        point.y = originalPoints[index].y + dy
+        // todo 关联路线的点，需要更新路线的点位置
       })
 
-    const settings = {
-      initialPos: {
-        x: this.points[0].x,
-        y: this.points[0].y,
-      },
-      readOnly: true,
-    }
-    if (this.points[0].relatedLineId) {
-      const relatedLine = this.root.lineMap[this.points[0].relatedLineId]
-      const jointIndex = relatedLine.joints.findIndex(joint => joint.relatedStationId === this.id)
-      settings.lastJoint = jointIndex > 0 ? relatedLine.joints[jointIndex - 1] : null
-      settings.nextJoint = jointIndex < relatedLine.joints.length - 1 ? relatedLine.joints[jointIndex + 1] : null
-    }
-    this.mover = draggable(this.shape, (pos) => {
-      this.move(pos)
-    }, settings)
-    
-    this.nameMover = draggable(this.text, (pos) => {
-      this.namePos = pos
+      // 名称文本的同步
+      this.namePos.left = originalNamePos.left + dx
+      this.namePos.top = originalNamePos.top + dy
+      this.refreshName()
+    })
+
+    this.text.on('editing:exited', (opt) => {
+      this.refreshName(this.text.text)
     })
   }
 
   appendPoint (point) {
-    if (this.points.length === 1 && !this.points[0].relatedLineId && point.relatedLineId) {
+    if ( // 第一次和路线关联，只变颜色
+      this.points.length === 1 && 
+      !this.points[0].relatedLineId && 
+      point.relatedLineId
+    ) {
       this.points[0].relatedLineId = point.relatedLineId
       this.style.stroke = this.root.lineMap[point.relatedLineId].style.stroke
       if (this.shape) {
-        this.shape.attr('stroke', this.style.stroke)
+        this.shape.set('stroke', this.style.stroke)
+        this.canvas.requestRenderAll()
       }
     } else {
       this.points.push(point)
@@ -405,36 +364,6 @@ export default class Station {
     }
   }
 
-  modifyName (name) {
-    this.name = name
-    this.text.text(name)
-  }
-
-  move (newPoint1Pos) {
-    const { x: point1X, y: point1Y } = this.points[0]
-    this.points.forEach(point => {
-      point.x = newPoint1Pos.x + (point.x - point1X)
-      point.y = newPoint1Pos.y + (point.y - point1Y)
-      if (point.relatedLineId && this.root.lineMap[point.relatedLineId]) {
-        this.root.lineMap[point.relatedLineId].moveJoint({
-          key: 'relatedStationId',
-          value: this,
-        }, { x: point.x, y: point.y}, true)
-      }
-    })
-    this.namePos = {
-      x: newPoint1Pos.x + (this.text.attr('x') - point1X),
-      y: newPoint1Pos.y + (this.text.attr('y') - point1Y),
-    }
-    this.text
-      .attr('x', this.namePos.x)
-      .attr('y', this.namePos.y)
-    if (this.nameMover) {
-      this.nameMover.movePositionTo(this.namePos.x, this.namePos.y)
-    }
-    this.refreshStyle()
-  }
-
   sliceMove (dx, dy) {
     this.move({
       x: this.points[0].x + dx,
@@ -449,28 +378,11 @@ export default class Station {
     }
   }
 
-  delete (isUndo = false) {
+  delete () {
     if (selectedElement.value === this) {
       this.setSelect(false)
     }
-    const deleteHistory = {
-      type: 'delete',
-      element: 'station',
-      snapshot: this.compress(),
-      relatedLines: []
-    }
-    this.lines.forEach(line => {
-      deleteHistory.relatedLines.push({
-        operation: 'unrelated',
-        lineId: line.id,
-        jointIndex: line.joints.findIndex(joint => joint.relatedStationId === this.id),
-        relatedStationId: this.id,
-      })
-      line.relatedStationDelete(this.id)
-    })
-    if (!isUndo) {
-      drawStore.addToHistory(deleteHistory)
-    }
+    this.lines.forEach(line => line.relatedStationDelete(this.id))
     this.g.remove()
     delete this.parent.children[this.id]
     delete this.root.stationMap[this.id]

@@ -141,7 +141,6 @@ export default class StationHall {
     this.parent = parent
     this.points = points || []
     this.style = style
-    // console.log(this.parent.g)
     this.path = this.parent.shapeG.append('path')
       .attr('d', '')
 

@@ -30,6 +30,10 @@
       </div>
     </div>
 
+    <div class="group" v-if="tool === 'select' && !drawRect">
+      <Checkbox v-model="alignMode" label="对齐模式" />
+    </div>
+
     <div class="group" v-if="(tool.includes('line') || tool === 'edge') && !drawRect">
       <LineSetting :setting="lineSetting" />
     </div>
@@ -164,7 +168,7 @@ const guessStationVisible = ref(false)
 import { useDrawStore } from '@/store/drawStore.js'
 import { storeToRefs } from 'pinia'
 const drawStore = useDrawStore()
-const { tool, lineSetting, stationSetting, textSetting, bgType, mapboxSetting, bgSetting, drawRect, svg, selectedElement } = storeToRefs(drawStore)
+const { tool, lineSetting, stationSetting, textSetting, bgType, mapboxSetting, bgSetting, drawRect, svg, selectedElement, alignMode } = storeToRefs(drawStore)
 
 const menuItems = reactive([
   {

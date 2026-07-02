@@ -2,13 +2,14 @@
   <div class="page">
     <div class="hero">
       <div class="branding">
+        
         <div class="logo">
-          <i class="fas fa-train"></i> MetroEase
+          <FontAwesomeIcon :icon="faTrain" /> MetroEase
         </div>
         <div class="tagline">
-          <i class="fab fa-qq" style="color: #12a0e0;"></i>
+          <FontAwesomeIcon :icon="faQq" style="color: #12a0e0;" />
           <span>QQ交流群：837512598</span>
-          <i class="far fa-copy" @click="copyQQGroup" style="cursor: pointer;"></i>
+          <FontAwesomeIcon :icon="faCopy" @click="copyQQGroup" style="cursor: pointer;" />
         </div>
       </div>
       <RewardAndContact :isHead="true" />
@@ -33,7 +34,7 @@
       </div>
     </div>
     <footer>
-      <i class="fas fa-train"></i> MetroEase · 绘制你心中的轨交蓝图 | 欢迎投稿 & Mapbox 地图引擎
+      <FontAwesomeIcon :icon="faTrain" /> MetroEase · 绘制你心中的轨交蓝图 | 欢迎投稿 & Mapbox 地图引擎
     </footer>
   </div>
 </template>
@@ -42,6 +43,10 @@
 import { useRouter, useRoute } from 'vue-router'
 import RewardAndContact from '@/components/RewardAndContact.vue'
 import { ElMessage } from 'element-plus'
+
+import { faTrain, faTrainSubway } from '@fortawesome/free-solid-svg-icons'
+import { faQq } from '@fortawesome/free-brands-svg-icons'
+import { faCopy } from '@fortawesome/free-regular-svg-icons'
 
 const baseUrl = import.meta.env.BASE_URL
 
@@ -53,9 +58,14 @@ const galleries = [
   '粤港澳',
   '沪苏',
   '成都',
+  '重庆',
+  '天津',
   '福州',
   '厦门',
+  '长沙',
   '南昌',
+  '石家庄',
+  '哈尔滨',
   '兰州',
 ]
 
@@ -118,7 +128,7 @@ function jumpToCanvas(galleryName) {
         color: transparent;
         position: relative;
 
-        i {
+        svg {
           background: none;
           background-clip: unset;
           -webkit-background-clip: unset;

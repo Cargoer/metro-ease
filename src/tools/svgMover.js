@@ -1,5 +1,63 @@
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref } from 'vue';
 import * as d3 from 'd3';
+import { debounce, throttle } from '@/tools/utils'
+
+// drawStore
+import { useDrawStore } from '@/store/drawStore'
+import { storeToRefs } from 'pinia'
+
+function snapToAngleWithDistanceThreshold(P, Q, threshold = 10, distance) {
+  const dx = Q.x - P.x;
+  const dy = Q.y - P.y;
+  
+  if (dx === 0 && dy === 0) return { ...Q };
+  
+  const currentDistance = Math.sqrt(dx*dx + dy*dy);
+  const targetAngles = [0, 45, 90, 135, 180, 225, 270, 315];
+  
+  let bestTarget = null;
+  let bestPerpDist = Infinity;
+  
+  for (let target of targetAngles) {
+    const rad = target * Math.PI / 180;
+    // 目标方向的单位向量
+    const ux = Math.cos(rad);
+    const uy = Math.sin(rad);
+    
+    // Q 方向的单位向量
+    const qx = dx / currentDistance;
+    const qy = dy / currentDistance;
+    
+    // 点积：判断方向是否一致（> 0 表示同向）
+    const dot = qx * ux + qy * uy;
+    
+    // 如果点积 <= 0，说明在反方向，跳过
+    if (dot <= 0) continue;
+    
+    // 计算垂直距离
+    // 垂直距离 = |叉积| = currentDistance * |sin(角度差)|
+    const perpDist = Math.abs(qx * uy - qy * ux) * currentDistance;
+    
+    if (perpDist < bestPerpDist) {
+      bestPerpDist = perpDist;
+      bestTarget = target;
+    }
+  }
+  
+  if (bestTarget === null || bestPerpDist > threshold) {
+    return { ...Q, isAlign: false };
+  }
+  
+  // 吸附
+  const snappedRadians = bestTarget * Math.PI / 180;
+  const finalDistance = distance !== undefined ? distance : currentDistance;
+  
+  return {
+    x: P.x + finalDistance * Math.cos(snappedRadians),
+    y: P.y + finalDistance * Math.sin(snappedRadians),
+    isAlign: true
+  };
+}
 
 // 简单元素拖动
 export function draggable(element, fn, setting = { initialPos: null, readOnly: false }) {
@@ -27,11 +85,39 @@ export function draggable(element, fn, setting = { initialPos: null, readOnly: f
       dragStartPos.y = Math.round(e.y)
       element.style('cursor', 'move')
     })
-    .on('drag', (e) => {
+    .on('drag', throttle((e) => {
+      // 清除之前的对线
+      const drawStore = useDrawStore()
+      drawStore.svg.node.selectAll('.align-line').style('opacity', 0)
+
       const dragPos = {
         x: Math.round(e.x),
         y: Math.round(e.y),
       }
+
+      const magnetic = (joint) => {
+        const { x, y, isAlign } = snapToAngleWithDistanceThreshold(joint, dragPos)
+        if (isAlign) {
+          dragPos.x = x
+          dragPos.y = y
+          d3.select(`#${joint.id}_align_line`)
+            .attr('x1', joint.x)
+            .attr('y1', joint.y)
+            .attr('x2', dragPos.x)
+            .attr('y2', dragPos.y)
+            .style('opacity', 1)
+        }
+      }
+
+      if (storeToRefs(drawStore).alignMode.value) {
+        if (setting.lastJoint) {
+          magnetic(setting.lastJoint)
+        }
+        if (setting.nextJoint) {
+          magnetic(setting.nextJoint)
+        }
+      }
+      
       // 计算新位置
       const newX = dragPos.x + dragStartOffset.x;
       const newY = dragPos.y + dragStartOffset.y;
@@ -53,8 +139,10 @@ export function draggable(element, fn, setting = { initialPos: null, readOnly: f
       })
       dragStartPos.x = dragPos.x
       dragStartPos.y = dragPos.y
-    })
+    }, 30))
     .on('end', (e) => {
+      const drawStore = useDrawStore()
+      drawStore.svg.node.selectAll('.align-line').style('opacity', 0)
       element.style('cursor', 'default')
     })
   )

@@ -19,6 +19,8 @@
     <!-- <el-button type="primary" class="dynamic-demo-btn" @click="handleDynamicClick">动态演示测试</el-button> -->
     <!-- <el-button type="primary" class="dynamic-demo-btn" @click="handleZoomIn">放大2倍</el-button> -->
     <RewardAndContact />
+    <!-- <Search @search="handleSearch" /> -->
+    <ScaleBar v-if="drawStore.svg?.bgSetting?.type === 'mapbox'" />
   </div>
   
 </template>
@@ -28,13 +30,12 @@ import { ref, onMounted, reactive, watch, computed, onUpdated, toRaw } from 'vue
 import DrawTool from '@/components/DrawTool.vue'
 import ElementDetailPanel from '@/components/ElementDetailPanel.vue'
 import RewardAndContact from '@/components/RewardAndContact.vue'
+import Search from './components/Search.vue'
+import ScaleBar from './components/ScaleBar.vue'
 
 import { ElMessage, ElMessageBox } from 'element-plus'
 import moment from 'moment'
 import * as d3 from 'd3'
-
-import StationHall from '@/model/stationHall.js'
-
 
 // 获取路由实例和当前路由对象
 import { useRouter, useRoute, onBeforeRouteLeave } from 'vue-router'
@@ -89,7 +90,7 @@ watch(() => [lineSetting.value.isExtendMode, drawLine.value], (newVal) => {
     Object.values(svg.lineMap).forEach(line => {
       line.setExtendNode()
     })
-  } else if (!newVal[0]) {
+  } else {
     d3.selectAll('.extend-node').remove()
   }
 })
@@ -162,96 +163,32 @@ function handleSvgClick (event, pos) {
 
   if (tool.value === 'station') {
     const stationG = svg.children['global_g'].children['draw_part'].children['global_station_g']
-    new Station(stationG, {
+    const newStation = new Station(stationG, {
       points: [pos],
       style: stationSetting.value
+    })
+    drawStore.addToHistory({
+      type: 'add',
+      target: newStation,
     })
     return
   }
 
   if (tool.value === 'text') {
     const textG = svg.children['global_g'].children['draw_part'].children['global_text_g']
-    new Text(textG, {
+    const newText = new Text(textG, {
       pos,
       style: textSetting.value,
+    })
+    drawStore.addToHistory({
+      type: 'add',
+      target: newText,
     })
     return
   }
 
   // 绘制路径
   if (tool.value.includes('line') || tool.value === 'edge') {
-    // let realPos = { ...pos }
-
-    // if (event.extend) return
-
-    // if (extendMode.value && !drawLine.value) return
-
-    // // 闭合路径
-    // if (drawLine.value && !event.extend && getDistance(realPos, drawLine.value.joints[0]) < 5) {
-    //   drawLine.value.closeLine()
-    //   if (pressedKeys.value.s && !drawLine.value.joints[0].relatedStation) {
-    //     drawLine.value.addStationInLine(drawLine.value.joints[0])
-    //   }
-    //   drawLine.value = null
-    //   return
-    // }
-
-    // // 连接到已存在的站点或新增站点，记录相关站点
-    // let jointRelatedStation = null
-    // if (tool.value.includes('line')) {
-    //   if (event.from && event.from.ele === 'station') {
-    //     realPos.x = event.from.eleObj.points[0].x
-    //     realPos.y = event.from.eleObj.points[0].y
-    //     jointRelatedStation = event.from.eleObj
-    //     if (jointRelatedStation.name === lineStore.presetStationNames[0]) {
-    //       lineStore.presetStationNames.shift()
-    //     }
-    //   }
-    //   else if (pressedKeys.value.s) {
-    //     // const stationNames = lineStore.presetStationNames.shift()
-    //     // const stationG = svg.children['global_g'].children['draw_part'].children['global_station_g']
-    //     // jointRelatedStation = new Station(stationG, {
-    //     //   points: [pos],
-    //     //   name: stationNames || '车站名',
-    //     //   style: stationSetting.value
-    //     // })
-    //     jointRelatedStation = addStationWhileDrawLine(pos)
-    //   }
-    // }
-
-    // // 开始绘制路径
-    // if (!drawLine.value) {
-    //   const lineG = svg.children['global_g'].children['draw_part'].children['global_line_g']
-    //   const edgeG = svg.children['global_g'].children['draw_part'].children['global_edge_g']
-    //   const curJointInfo = {
-    //     ...realPos,
-    //     type: 'start',
-    //   }
-    //   if (jointRelatedStation) {
-    //     curJointInfo.relatedStationId = jointRelatedStation.id
-    //   }
-    //   drawLine.value = new Line(tool.value.includes('line') ? lineG : edgeG, {
-    //     joints: [curJointInfo],
-    //     style: lineSetting.value
-    //   })
-    // } else {
-    //   const curJointInfo = {
-    //     ...realPos, 
-    //     type: mapType[tool.value] || 'joint', 
-    //     flag: !pressedKeys.value.Shift,
-    //   }
-    //   if (jointRelatedStation) {
-    //     curJointInfo.relatedStationId = jointRelatedStation.id
-    //   }
-    //   drawLine.value.addJoint(curJointInfo)
-    // }
-
-    // if (jointRelatedStation) {
-    //   jointRelatedStation.appendPoint({
-    //     ...realPos,
-    //     relatedLineId: drawLine.value.id
-    //   })
-    // }
     drawLineJoint(event, pos, pressedKeys.value.s)
   }
 }
@@ -267,22 +204,37 @@ function addStationWhileDrawLine (pos) {
   return jointRelatedStation
 }
 
+function snapToAngleSimple(P, Q) {
+  const dx = Q.x - P.x;
+  const dy = Q.y - P.y;
+  
+  // 如果点重合，直接返回
+  if (dx === 0 && dy === 0) return { ...Q };
+  
+  // 计算角度（度数）
+  let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+  angle = ((angle % 360) + 360) % 360;
+  
+  // 核心技巧：将角度四舍五入到最近的 45° 倍数
+  // 这样 0°, 45°, 90°, 135°, 180°... 都会被吸附
+  const snappedAngle = Math.round(angle / 45) * 45;
+  const snappedRadians = snappedAngle * Math.PI / 180;
+  
+  // 保持原距离
+  const distance = Math.sqrt(dx*dx + dy*dy);
+  
+  return {
+    x: Number((P.x + distance * Math.cos(snappedRadians)).toFixed(2)),
+    y: Number((P.y + distance * Math.sin(snappedRadians)).toFixed(2))
+  };
+}
+
 function drawLineJoint(event, pos, withNewStation = false) {
-  let realPos = { ...pos }
+  let realPos = getRealPos(pos)
 
   if (event.extend) return
 
   if (lineSetting.value.isExtendMode && !drawLine.value) return
-
-  // 闭合路径
-  if (drawLine.value && !event.extend && getDistance(realPos, drawLine.value.joints[0]) < 5) {
-    drawLine.value.closeLine()
-    if (pressedKeys.value.s && !drawLine.value.joints[0].relatedStation) {
-      drawLine.value.addStationInLine(drawLine.value.joints[0])
-    }
-    drawLine.value = null
-    return
-  }
 
   // 连接到已存在的站点或新增站点，记录相关站点
   let jointRelatedStation = null
@@ -296,7 +248,7 @@ function drawLineJoint(event, pos, withNewStation = false) {
       }
     }
     else if (withNewStation) {
-      jointRelatedStation = addStationWhileDrawLine(pos)
+      jointRelatedStation = addStationWhileDrawLine(realPos)
     }
   }
 
@@ -331,23 +283,50 @@ function drawLineJoint(event, pos, withNewStation = false) {
       ...realPos,
       relatedLineId: drawLine.value.id
     })
+    jointRelatedStation.addEventListener()
   }
+
+  drawStore.addToHistory({
+    type: 'add',
+    target: drawLine.value,
+    withNewStation,
+  })
 }
 
+import { getContrastTextColor } from '@/tools/utils'
+const getRealPos = (pos) => {
+  if (pressedKeys.value.Shift && drawLine.value) {
+    const lastJoint = drawLine.value.joints[drawLine.value.joints.length - 1]
+    return snapToAngleSimple(lastJoint, pos)
+  }
+  return pos
+}
 watch(() => [mousePosition.value, pressedKeys.value.Shift], (newPos) => {
   if (drawLine.value) {
-    if (getDistance(mousePosition.value, drawLine.value.joints[0]) < 5) {
+    const makeItCircleJoint =
+      drawLine.value.addJointMode === 'push' ? 
+      drawLine.value.joints[0] :
+      drawLine.value.joints[drawLine.value.joints.length - 1]
+    if (drawLine.value.joints.length > 2 && getDistance(mousePosition.value, makeItCircleJoint) < 5) {
       drawLine.value.parent.node.append('circle')
-        .attr('cx', drawLine.value.joints[0].x)
-        .attr('cy', drawLine.value.joints[0].y)
-        .attr('r', drawLine.value.strokeWidth || 5)
-        .attr('fill', drawLine.value.strokeWidth ? drawLine.value.stroke : drawLine.value.fill)
+        .attr('cx', makeItCircleJoint.x)
+        .attr('cy', makeItCircleJoint.y)
+        .attr('r', ((drawLine.value.style.strokeWidth / 2) * 1.2) || 5)
+        .attr('fill', drawLine.value.style.strokeWidth ? drawLine.value.style.stroke : drawLine.value.style.fill)
+        .attr('stroke', getContrastTextColor(drawLine.value.style.stroke))
+        .attr('stroke-width', 2)
         .attr('id', 'path-closed-indicator')
+        .on('click', (e) => {
+          drawLine.value.closeLine()
+          drawLine.value = null
+          e.stopPropagation()
+          return
+        })
     } else {
       drawLine.value.parent.node.select(`#path-closed-indicator`).remove()
     }
     drawLine.value.preview({ 
-      ...mousePosition.value, 
+      ...getRealPos(mousePosition.value), 
       type: mapType[tool.value] || 'joint', 
       flag: !pressedKeys.value.Shift,
     })
@@ -461,6 +440,7 @@ function handleZoomIn () {
 
 function initSvg() {
   svg = reactive(new Svg('svg-container'))
+  // isMapbox.value = svg.bgSetting.type === 'mapbox'
   drawStore.initSvg(svg)
   svg.addEventListeners({
     click: handleSvgClick,
@@ -508,11 +488,15 @@ function initSvg() {
   })
 }
 
-function locateTarget () {  // 先找到边
-  const edge = svg.children['global_g'].children['draw_part']
-  if (!edge) return
-  const { x, y, width, height } = edge.node.node().getBBox()
-  const k = Math.min( window.innerWidth / (width + 100), window.innerHeight / (height + 100))
+function handleSearch ({ item, margin = 0 }) {
+  locateTarget(item.g.node(), margin)
+}
+
+function locateTarget (target, margin = 0) {  // 先找到边
+  const node = target || svg.children['global_g'].children['draw_part'].node.node()
+  if (!node) return
+  const { x, y, width, height } = node.getBBox()
+  const k = Math.min( window.innerWidth / (width + margin), window.innerHeight / (height + margin))
   const dx = (-x - width / 2) * k  + window.innerWidth / 2
   const dy = (-y - height / 2) * k  + window.innerHeight / 2
   svg.tempZoomCenter = { 
@@ -524,14 +508,16 @@ function locateTarget () {  // 先找到边
   svg.node.call(svg.zoom.transform, testTranslate)
 }
 
-let svg = null
+let svg = reactive(null)
 let name = ''
 let drawingRect = ref(null)
 onMounted(async () => {  
+  watch(svg, (newVal) => {
+    if (newVal) {
+      console.log(newVal.bgSetting.type)
+    }
+  }, {deep: true})
   initSvg()
-
-  
-
   name = route.params.name || 'new'
   if (name !== 'new') {
     const module = await import(`@/data/gallery/${name}.js`);
@@ -555,7 +541,6 @@ onMounted(async () => {
     if (e.key === ' ') {
       svg.node.attr('cursor', 'grab')
     } else if (e.key === 'Enter') {
-      console.log('hello?')
       drawLine.value && drawLine.value.removePreview()
       drawLine.value = null
     } else if (e.key === 'Delete') {
@@ -578,6 +563,8 @@ onMounted(async () => {
       // 所有线转换为135线
       console.log('动态演示')
       handleDynamicClick()
+    } else if (e.key === 'z' && e.ctrlKey) { // ctrl+z
+      drawStore.undo()
     }
   })
   window.addEventListener('keyup', (e) => {

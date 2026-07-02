@@ -127,10 +127,7 @@ for (const line of graphData) {
   }
 }
 
-// console.log(stations)
 const nanshan = stations.find(station => station.name === '南山')
-// console.log(nanshan.distanceTo('前海湾'))
-// console.log(nanshan.priceTo('前海湾'))
 // 分别计算南山到其他站的距离和价格
 stations.forEach(station => {
   console.log(`${station.name}: 距离 ${nanshan.distanceTo(station.name)}, 价格 ${nanshan.priceTo(station.name)}`)

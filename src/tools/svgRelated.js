@@ -30,6 +30,48 @@ export function getRoundCornerD (point1, pointC, point2, r) {
   return `L${edge1} C${pointC.x},${pointC.y} ${pointC.x},${pointC.y} ${edge2}`
 }
 
+function findRWith45Degree(P, Q, slopePR, slopeQR) {
+  // PR 的直线方程：y - Py = slopePR * (x - Px)
+  // 即：y = slopePR * x + (Py - slopePR * Px)
+  
+  const bPR = P.y - slopePR * P.x;
+  const bQR = Q.y - slopeQR * Q.x;
+  
+  // 如果斜率相同，两条线平行，无交点
+  if (slopePR === slopeQR) {
+    return null;
+  }
+  
+  // 解方程组：
+  // y = slopePR * x + bPR
+  // y = slopeQR * x + bQR
+  // 
+  // slopePR * x + bPR = slopeQR * x + bQR
+  // (slopePR - slopeQR) * x = bQR - bPR
+  // x = (bQR - bPR) / (slopePR - slopeQR)
+  
+  const x = (bQR - bPR) / (slopePR - slopeQR);
+  const y = slopePR * x + bPR;
+  
+  return { x, y };
+}
+
+/**
+ * 直接计算 R 点（通过几何关系）
+ * PR 和 QR 与水平线夹角均为 45°
+ */
+export function getLean90ConnectionD(P, Q, leftFirst = true) {
+  const isDown = P.y > Q.y ? 1 : -1;
+  const direction = leftFirst ? 1 : -1;
+
+  const slopePR = isDown * direction;
+  const slopeQR = -slopePR;
+  
+  return {
+    turnPoint: findRWith45Degree(P, Q, slopePR, slopeQR)
+  };
+}
+
 export function get135ConnectionD (point1, point2, r, leanFirst = true) {
   const turnPoint = {}
 
@@ -316,7 +358,7 @@ export async function saveSvgWithBg(
     watermarkText = '', 
     imageName = '我的地铁图', 
     format = 'png', 
-    quality = 0.95, 
+    quality = 1, 
     watermarkPosition = 'bottom-left', 
     padding = 100,
     canvasEdge = null 
@@ -373,7 +415,6 @@ export async function saveSvgWithBg(
   // 克隆目标元素并处理其中的image标签
   const clonedElement = drawPartG.node().cloneNode(true);
 
-  console.log('canvasEdge', canvasEdge)
 
   if (canvasEdge) {
     // SVG 命名空间

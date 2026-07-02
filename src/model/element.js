@@ -20,6 +20,7 @@ let bgSetting = null
 
 // mapbox相关
 import mapboxgl from 'mapbox-gl'
+import 'mapbox-gl/dist/mapbox-gl.css'
 const mapboxAccessToken = import.meta.env.VITE_APP_MAPBOX_ACCESS_TOKEN
 
 function initStore () {
@@ -124,11 +125,30 @@ export class Svg {
       this.node = d3.select(`#${this.containerId}`).append('svg')
       .style('z-index', 1)
       .style('pointer-events', 'all')
-    this.node.attr('width', canvasWidth).attr('height', canvasHeight)
+    this.node.attr('width', canvasWidth).attr('height', canvasHeight)  
+    
+    if (this.mapboxObj) {
+      this.mapboxObj.resize()
+    }
 
     // 创建滤镜（path选中时使用）
     if (!this.node.select('defs').size()) {
       const defs = this.node.append('defs')
+      const filter = defs.append("filter")
+        .attr("id", "d3-shadow")
+        .attr("x", "-20%")      // 防止阴影被裁剪
+        .attr("y", "-20%")
+        .attr("width", "140%")
+        .attr("height", "140%");
+      
+      // 使用 feDropShadow 滤镜基元 (更接近 box-shadow)
+      filter.append("feDropShadow")
+        .attr("dx", 4)                    // 水平偏移
+        .attr("dy", 6)                    // 垂直偏移
+        .attr("stdDeviation", 5)          // 模糊半径
+        .attr("flood-color", "rgba(222, 29, 29, 1)")  // 阴影颜色和透明度
+        .attr("flood-opacity", 0.8);
+      
       createBorderFilter(defs, { // 白边滤镜
         id: 'pathSelectedFilter',
         color: '#ffffff',
@@ -255,7 +275,6 @@ export class Svg {
       .on('zoom', (event) => {
         zoomInfo.value = event.transform
         this.children['global_g'].node.attr('transform', event.transform)
-        // console.log('svg on zoom', event)
 
         if (['url', 'local'].includes(this.bgSetting.type)) this.drawCanvasBg()
         if (this.mapboxObj) {
@@ -263,7 +282,7 @@ export class Svg {
           const sourceEvent = event.sourceEvent;
           const prevK = this.formerZoomInfo.k;   // 上一次的比例尺
           const currK = event.transform.k;       // 现在的比例尺
-          const isZoomAction = currK !== prevK;  // ✅ 缩放：比例尺变了
+          const isZoomAction = prevK !== currK;  // ✅ 缩放：比例尺变了
           let zoomCenterX, zoomCenterY;
 
           // ====== 获取缩放中心点 ======
@@ -273,17 +292,12 @@ export class Svg {
                 // PC 鼠标
                 zoomCenterX = sourceEvent.clientX;
                 zoomCenterY = sourceEvent.clientY;
-              } else if (sourceEvent.type === 'touchmove' && sourceEvent.touches?.length === 2) {
-                // 移动端双指
-                const t1 = sourceEvent.touches[0];
-                const t2 = sourceEvent.touches[1];
-                zoomCenterX = (t1.clientX + t2.clientX) / 2;
-                zoomCenterY = (t1.clientY + t2.clientY) / 2;
               }
             } else {
               // 无事件源，使用临时缩放中心
-              zoomCenterX = this.tempZoomCenter.x
-              zoomCenterY = this.tempZoomCenter.y
+              // 移动到临时缩放中心
+              zoomCenterX = this.tempZoomCenter?.x
+              zoomCenterY = this.tempZoomCenter?.y
               // 清空临时缩放中心
               this.tempZoomCenter = null
             }
@@ -293,7 +307,11 @@ export class Svg {
           //   // message: event.sourceEvent.touches[0].clientY,
           //   type: 'info',
           // })
-          if (isZoomAction) this.updateMapboxZoomByD3(event, zoomCenterX, zoomCenterY)
+          if (isZoomAction) {
+            if (zoomCenterX && zoomCenterY) {
+              this.updateMapboxZoomByD3(event, zoomCenterX, zoomCenterY)
+            }
+          }
           else this.updateMapboxCenterByD3(event)
           // this.updateMapboxByD3(event)
         }
@@ -331,32 +349,6 @@ export class Svg {
   }
 
   addEventListeners (funcObj) {
-    // this.node.on('click', (e) => {
-    //   const [x, y] = d3.pointer(e, this.node.node());
-    //   const pos = this.transformCoords(x, y)
-    //   funcObj.click(e, pos)
-    // })
-    // this.node.on('mousemove', (e) => {
-    //   const [x, y] = d3.pointer(e, this.node.node());
-    //   const pos = this.transformCoords(x, y)
-    //   funcObj.mousemove(e, pos)
-    // })
-    // this.node.on('mousedown', (e) => {
-    //   const [x, y] = d3.pointer(e, this.node.node());
-    //   const pos = this.transformCoords(x, y)
-    //   funcObj.mousedown(e, pos)
-    // })
-    // this.node.on('mouseup', (e) => {
-    //   const [x, y] = d3.pointer(e, this.node.node());
-    //   const pos = this.transformCoords(x, y)
-    //   funcObj.mouseup(e, pos)
-    // })
-    // this.node.on('contextmenu', (e) => {
-    //   const [x, y] = d3.pointer(e, this.node.node());
-    //   const pos = this.transformCoords(x, y)
-    //   funcObj.contextmenu(e, pos)
-    //   e.preventDefault()
-    // })
 
     Object.entries(funcObj).forEach(([key, func]) => {
       this.node.on(key, (e) => {
@@ -378,7 +370,9 @@ export class Svg {
           style: this.bgSetting.style || 'mapbox://styles/mapbox/streets-v11',
           center: this.bgSetting.center || [114.0683, 22.5431],
           zoom: this.bgSetting.zoom || 12,
-          accessToken: mapboxAccessToken
+          accessToken: mapboxAccessToken,
+          preserveDrawingBuffer: true,
+          attributionControl: false
         })
       }
       return
@@ -575,9 +569,16 @@ export class Text {
     }
   }
 
-  delete () {
+  delete (isUndo = false) {
     if (selectedElement.value === this) {
       this.setSelect(false)
+    }
+    if (!isUndo) {
+      drawStore.addToHistory({
+        type: 'delete',
+        element: 'text',
+        snapshot: this.compress(),
+      })
     }
     this.g.remove()    
     delete this.parent.children[this.id]

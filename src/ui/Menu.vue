@@ -26,7 +26,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, defineProps, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 
 const props = defineProps({
   menuItems: {
@@ -36,7 +36,6 @@ const props = defineProps({
         text: '项目',
         showSubItems: false,
         func: (item) => {
-          console.log(item)
           item.showSubItems = !item.showSubItems
         },
         subItems: [

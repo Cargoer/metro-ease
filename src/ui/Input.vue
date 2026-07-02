@@ -13,6 +13,7 @@
       :type="props.type"
       :style="wrapperStyle"
       @blur="handleBlur"
+      @input="handleChange"
     />
 
     <textarea
@@ -26,12 +27,13 @@
       :type="props.type"
       :style="wrapperStyle"
       @blur="handleBlur"
+      @input="handleChange"
     />
   </div>
 </template>
 
 <script setup>
-import { computed, defineProps, defineEmits, ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 
 // 定义 props
 const props = defineProps({
@@ -73,7 +75,7 @@ const props = defineProps({
 const inputRef = ref(null)
 
 // 定义 emits
-const emit = defineEmits(['update:modelValue', 'blur'])
+const emit = defineEmits(['update:modelValue', 'blur', 'change'])
 
 // 双向绑定处理
 const inputValue = computed({
@@ -88,6 +90,9 @@ const inputValue = computed({
 // 外部可接收原生blur事件（可选）
 const handleBlur = (e) => {
   emit('blur', e)
+}
+const handleChange = (e) => {
+  emit('change', e)
 }
 
 // 宽度样式

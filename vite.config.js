@@ -7,7 +7,8 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     host: '0.0.0.0',
-    open: true, // 自动打开浏览器
+    open: false, // 自动打开浏览器
+    hmr: { overlay: false }
   },
   resolve: {
     alias: {

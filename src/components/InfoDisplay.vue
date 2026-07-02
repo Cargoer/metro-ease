@@ -31,7 +31,7 @@
 </template>
 
 <script setup>
-import { computed, ref, defineProps } from 'vue'
+import { computed, ref } from 'vue'
 import { useDrawStore } from '@/store/drawStore'
 import { storeToRefs } from 'pinia'
 const drawStore = useDrawStore()

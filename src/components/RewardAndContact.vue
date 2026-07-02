@@ -5,8 +5,8 @@
       <div class="about-item" @click="contactDialogVisible = true">联系作者</div>
     </div>
     <div class="action-links" v-else>
-      <div class="action-link" @click="encourageDialogVisible = true"><i class="fas fa-heart" style="color:#e68a2e;"></i> 鼓励作者</div>
-      <div class="action-link" @click="contactDialogVisible = true"><i class="fas fa-pen-fancy"></i> 联系作者</div>
+      <div class="action-link" @click="encourageDialogVisible = true"><FontAwesomeIcon :icon="faHeart" style="color: #e68a2e;" /> 鼓励作者</div>
+      <div class="action-link" @click="contactDialogVisible = true"><FontAwesomeIcon :icon="faPenFancy" /> 联系作者</div>
     </div>
     <Dialog
       v-model:visible="encourageDialogVisible"
@@ -40,7 +40,9 @@
 </template>
 
 <script setup>
-import { defineProps, ref } from 'vue'
+import { ref } from 'vue'
+import { faHeart, faPenFancy } from '@fortawesome/free-solid-svg-icons'
+
 const props = defineProps({
   isHead: {
     type: Boolean,

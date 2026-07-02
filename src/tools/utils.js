@@ -109,3 +109,15 @@ export function getContrastTextColor(color) {
   // return brightness > 128 ? 'black' : 'white';
   return brightness > 160 ? 'black' : 'white';
 }
+
+// utils/throttle.js
+export function throttle(fn, interval = 50) {
+  let lastTime = 0;
+  return function (...args) {
+    const now = Date.now();
+    if (now - lastTime >= interval) {
+      fn.apply(this, args);
+      lastTime = now;
+    }
+  };
+}

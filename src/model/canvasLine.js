@@ -27,23 +27,20 @@ function initStore () {
 }
 
 export default class Line {
-  constructor (parent, settings) {
+  constructor (root, settings) {
     if (!drawStore) {
       initStore()
     }
 
-    this.parent = parent
     this.id = settings.id || generateUniqueId('line')
     this.name = settings.name || this.id
-    this.root = parent.root || null
-    parent.children[this.id] = this
-    this.root.lineMap[this.id] = this
+    this.root = root
+    root.lineMap[this.id] = this
 
     this.style = {
       stroke: settings.style.stroke || '#000',
       strokeWidth: settings.style.strokeWidth || 10,
       fill: settings.style.fill || 'none',
-      // isDashed: settings.style.isDashed || false,
       pattern: settings.style.pattern || 'default',
       dashArray: settings.style.dashArray || '20 20',
       innerStrokePercent: settings.style.pattern === 'railway' ? 0.8 : 0.3,
@@ -58,29 +55,19 @@ export default class Line {
       '运营时间': '',
     }
 
-    this.d = ''
     this.joints = settings.joints || []
     this.jointIdCounter = 0
     this.joints.forEach((joint, index) => {
       joint.id = `${this.id}_joint_${index}`
-      joint.relatedLineId = this.id
       this.jointIdCounter++
-      this.parent.parent.node.append('line')
-        .attr('id', `${joint.id}_align_line`)
-        .attr('class', 'align-line')
-        .attr('stroke', 'red')
-        .attr('stroke-width', 1)
-        .attr('stroke-dasharray', '5,5')
-        .attr('stroke-linecap', 'round')
-        .style('opacity', 0)
 
-      if (this.root.bgSetting.type === 'mapbox') {
-        if (joint.latLng) {
-          const posByLatLng = this.root.mapboxObj.project(joint.latLng)
-          joint.x = Number(posByLatLng.x.toFixed(0))
-          joint.y = Number(posByLatLng.y.toFixed(0))
-        } 
-      }
+      // if (this.root.bgSetting.type === 'mapbox') {
+      //   if (joint.latLng) {
+      //     const posByLatLng = this.root.mapboxObj.project(joint.latLng)
+      //     joint.x = Number(posByLatLng.x.toFixed(0))
+      //     joint.y = Number(posByLatLng.y.toFixed(0))
+      //   } 
+      // }
       if (!joint.tag) {
         joint.tag = 'normal'
       }
@@ -121,10 +108,9 @@ export default class Line {
             lat: Number(latLng.lat.toFixed(6)),
             lng: Number(latLng.lng.toFixed(6)),
           }
-          // delete jointObj.x
-          // delete jointObj.y
+          delete jointObj.x
+          delete jointObj.y
           delete jointObj.id
-          delete jointObj.relatedLineId
         }
         return jointObj
       }),
@@ -139,18 +125,6 @@ export default class Line {
       v.additionalPath.remove()
     })
     arr = []
-  }
-
-  bindToSelect (ele) {
-    ele.on('click', (e) => {
-      if (tool.value === 'select') { // 选中该路径
-        e.stopPropagation()
-        if (selectedElement.value) {
-          selectedElement.value.setSelect(false)
-        }
-        this.setSelect(true)
-      }
-    })
   }
 
   // 刷新DOM，包含样式
@@ -702,7 +676,6 @@ export default class Line {
       return
     }
     if (!joint.tag) joint.tag = 'normal'
-    joint.relatedLineId = this.id
     joint.id = `${this.id}_joint_${this.jointIdCounter++}`
     this.parent.parent.node.append('line')
       .attr('id', `${joint.id}_align_line`)
@@ -722,25 +695,11 @@ export default class Line {
     }
   }
 
-  removeJoint (joint, isUndo = false) {
-    if (this.joints.length === 1) {
-      this.delete()
-      return
-    }
+  removeJoint (joint) {
     const index = this.joints.findIndex(item => item === joint)
     if (index !== -1) {
       this.joints.splice(index, 1)
       this.refreshDom(true)
-      if (!isUndo) {
-        drawStore.addToHistory({
-          type: 'delete',
-          element: 'joint',
-          lineId: this.id,
-          snapshot: joint,
-          jointIndex: index,
-          relatedStationId: joint.relatedStationId,
-        })
-      }
       if (joint.relatedStationId) {
         const station = this.root.stationMap[joint.relatedStationId]
         station.removePoints({
@@ -777,37 +736,30 @@ export default class Line {
     }
   }
 
-  delete (isUndo = false) {
+  delete (withTransition = false) {
     if (selectedElement.value === this) {
       this.setSelect(false)
     }
-    this.paths.forEach(path => {
-      path.basicPath.remove()
-      path.additionalPath.remove()
-    })
-
-    const deleteHistory = {
-      type: 'delete',
-      element: 'line',
-      // 快照
-      snapshot: this.compress(),
-      relatedStations: []
+    if (withTransition) {
+      this.basicPath.transition().duration(500).style('opacity', 0).on('end', () => {
+        this.basicPath.remove()
+      })
+      this.additionalPath.transition().duration(500).attr('d', 'M0,0L0,0').on('end', () => {
+        this.additionalPath.remove()
+      })
+    } else {
+      this.paths.forEach(path => {
+        path.basicPath.remove()
+        path.additionalPath.remove()
+      })
     }
 
     this.joints.forEach(joint => {
       if (joint.relatedStationId) {
         const station = this.root.stationMap[joint.relatedStationId]
         if (station.points.length === 1) {
-          deleteHistory.relatedStations.push({
-            operation: 'delete',
-            snapshot: station.compress(),
-          })
           station.delete()
         } else {
-          deleteHistory.relatedStations.push({
-            operation: 'unrelated',
-            relatedJoint: joint,
-          })
           station.removePoints({
             key: 'relatedLineId',
             value: this.id
@@ -815,9 +767,6 @@ export default class Line {
         }
       }
     })
-    if (!isUndo) {
-      drawStore.addToHistory(deleteHistory)
-    }
     delete this.parent.children[this.id]
   }
 

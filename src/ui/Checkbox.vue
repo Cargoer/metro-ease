@@ -14,7 +14,7 @@
 </template>
 
 <script setup>
-import { computed, defineProps, defineEmits, ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 
 // 定义 props
 const props = defineProps({

@@ -28,7 +28,7 @@
       :options="[
         { label: '透明', value: 'none' },
         { label: '白色', value: 'white' },
-        { label: '使用底图', value: 'bgImg', show: svg && svg.bgSetting.type === 'local' }
+        { label: '使用底图', value: 'bgImg', show: svg && ['local'].includes(svg.bgSetting.type) }
       ]"
     />
     <Select
@@ -71,7 +71,7 @@
 </template>
 
 <script setup>
-import { ref, defineEmits, reactive } from 'vue'
+import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 const emit = defineEmits(['submit'])
 
@@ -99,13 +99,32 @@ const saveSetting = reactive({
   canvasEdge: null,
 })
 
-function submit() {
+function canvasToBlob(canvas, type = 'image/png', quality = 1) {
+  return new Promise((resolve) => {
+    canvas.toBlob(resolve, type, quality);
+  });
+}
+
+async function submit() {
   if (!saveSetting.imageName) {
     ElMessage.error('请输入图片名称')
     return
   }
   if (saveSetting.bgType === 'bgImg') {
-    saveSetting.bgUrl = svg.value.bgSetting.url
+    if (svg.value.bgSetting.type === 'local') {
+      saveSetting.bgUrl = svg.value.bgSetting.url
+    } else if (svg.value.bgSetting.type === 'mapbox') {
+      const canvas = svg.value.mapboxObj.getCanvas()
+      // await canvas.toBlob(blob => {
+      //   saveSetting.bgUrl = URL.createObjectURL(blob);
+      //   const a = document.createElement('a');
+      //   a.href = URL.createObjectURL(blob);
+      //   a.download = 'map.png';
+      //   a.click();
+      // }, 'image/png');
+      const blob = await canvasToBlob(canvas)
+      saveSetting.bgUrl = URL.createObjectURL(blob);
+    }
   }
   if (canvasEdgeId.value !== 'no') {
     saveSetting.canvasEdge = svg.value.canvasList.find(canvas => canvas.id === canvasEdgeId.value)

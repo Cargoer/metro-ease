@@ -105,15 +105,6 @@ export function elementCenter (svg, moveObj, resolve) {
     .translate(containerCenter.x - targetCenter.x * k, containerCenter.y - targetCenter.y * k) // 目标平移
     .scale(k) // 目标缩放
     
-  if (svg.mapboxObj) {
-    svg.updateMapboxByD3({
-      transform: {
-        x: targetCenter.x / currentZoomInfo.k,
-        y: targetCenter.y / currentZoomInfo.k,
-        k: k
-      }
-    }, moveObj.time)
-  }
   svg.node.transition()
     .duration(moveObj.time)
     .ease(d3.easeLinear)
